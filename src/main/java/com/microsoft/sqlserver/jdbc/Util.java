@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -1096,3 +1098,25 @@ final class SQLIdentifier {
         return fullName.toString();
     }
 }
+
+class Nanos {
+    static final int PER_SECOND = 1000000000;
+    static final int PER_MAX_SCALE_INTERVAL = PER_SECOND / (int) Math.pow(10, TDS.MAX_FRACTIONAL_SECONDS_SCALE);
+    static final int PER_MILLISECOND = PER_SECOND / 1000;
+    static final long PER_DAY = 24 * 60 * 60 * (long) PER_SECOND;
+
+    private Nanos() {
+    }
+}
+
+
+
+final class UTC {
+
+    // UTC/GMT time zone singleton.
+    static final TimeZone timeZone = new SimpleTimeZone(0, "UTC");
+
+    private UTC() {
+    }
+}
+
