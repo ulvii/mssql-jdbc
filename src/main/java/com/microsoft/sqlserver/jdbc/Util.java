@@ -1109,8 +1109,6 @@ class Nanos {
     }
 }
 
-
-
 final class UTC {
 
     // UTC/GMT time zone singleton.
