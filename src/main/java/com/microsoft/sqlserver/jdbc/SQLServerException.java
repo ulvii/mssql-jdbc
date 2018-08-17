@@ -11,12 +11,6 @@ import java.util.UUID;
 import java.util.logging.Level;
 
 
-/**
- * SQLServerException is thrown from any point in the driver that throws a java.sql.SQLException. SQLServerException
- * handles both SQL 92 and XOPEN state codes. They are switchable via a user specified connection property.
- * SQLServerExceptions are written to any open log files the user has specified.
- */
-
 enum SQLState {
     STATEMENT_CANCELED("HY008"),
     DATA_EXCEPTION_NOT_SPECIFIC("22000"),
@@ -51,7 +45,16 @@ enum DriverError {
 }
 
 
+/**
+ * Represents the exception thrown from any point in the driver that throws a java.sql.SQLException. SQLServerException
+ * handles both SQL 92 and XOPEN state codes. They are switchable via a user specified connection property.
+ * SQLServerExceptions are written to any open log files the user has specified.
+ */
 public final class SQLServerException extends java.sql.SQLException {
+    /**
+     * Always update serialVersionUID when prompted
+     */
+    private static final long serialVersionUID = -2195310557661496761L;
     static final String EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH = "08001";
     static final String EXCEPTION_XOPEN_CONNECTION_DOES_NOT_EXIST = "08003";
     static final String EXCEPTION_XOPEN_CONNECTION_FAILURE = "08006"; // After connection was connected OK
@@ -90,7 +93,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Log an exception to the driver log file
+     * Logs an exception to the driver log file.
      * 
      * @param o
      *        the io buffer that generated the exception
@@ -132,7 +135,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Make a new SQLException
+     * Construct a SQLServerException.
      * 
      * @param errText
      *        the exception message
@@ -143,11 +146,11 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param cause
      *        The exception that caused this exception
      */
-    public SQLServerException(String errText, SQLState sqlState, DriverError driverError, Throwable cause) {
+    SQLServerException(String errText, SQLState sqlState, DriverError driverError, Throwable cause) {
         this(errText, sqlState.getSQLStateCode(), driverError.getErrorCode(), cause);
     }
 
-    public SQLServerException(String errText, String errState, int errNum, Throwable cause) {
+    SQLServerException(String errText, String errState, int errNum, Throwable cause) {
         super(errText, errState, errNum);
         initCause(cause);
         logException(null, errText, true);
@@ -155,21 +158,21 @@ public final class SQLServerException extends java.sql.SQLException {
                                                            // ActivityId later.
     }
 
-    public SQLServerException(String errText, Throwable cause) {
+    SQLServerException(String errText, Throwable cause) {
         super(errText);
         initCause(cause);
         logException(null, errText, true);
         ActivityCorrelator.setCurrentActivityIdSentFlag();
     }
 
-    /* L0 */ public SQLServerException(Object obj, String errText, String errState, int errNum, boolean bStack) {
+    SQLServerException(Object obj, String errText, String errState, int errNum, boolean bStack) {
         super(errText, errState, errNum);
         logException(obj, errText, bStack);
         ActivityCorrelator.setCurrentActivityIdSentFlag();
     }
 
     /**
-     * Make a new SQLException
+     * Constructs a new SQLServerException.
      * 
      * @param obj
      *        the object
@@ -182,8 +185,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @param bStack
      *        true to generate the stack trace
      */
-    /* L0 */ public SQLServerException(Object obj, String errText, String errState, StreamError streamError,
-            boolean bStack) {
+    SQLServerException(Object obj, String errText, String errState, StreamError streamError, boolean bStack) {
         super(errText, errState, streamError.getErrorNumber());
 
         // Log SQL error with info from StreamError.
@@ -193,7 +195,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Build a new SQL Exception from an error detected by the driver.
+     * Constructs a SQLServerException from an error detected by the driver.
      * 
      * @param con
      *        the connection
@@ -206,7 +208,7 @@ public final class SQLServerException extends java.sql.SQLException {
      *        true to generate the stack trace
      * @throws SQLServerException
      */
-    /* L0 */static void makeFromDriverError(SQLServerConnection con, Object obj, String errText, String state,
+    static void makeFromDriverError(SQLServerConnection con, Object obj, String errText, String state,
             boolean bStack) throws SQLServerException {
         // The sql error code is 0 since the error was not returned from the database
         // The state code is supplied by the calling code as XOPEN compliant.
@@ -232,7 +234,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Build a new SQL Exception from a streamError detected by the driver.
+     * Builds a new SQL Exception from a streamError detected by the driver.
      * 
      * @param con
      *        the connection
@@ -244,8 +246,8 @@ public final class SQLServerException extends java.sql.SQLException {
      *        true to generate the stack trace
      * @throws SQLServerException
      */
-    /* L0 */ static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText,
-            StreamError streamError, boolean bStack) throws SQLServerException {
+    static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText, StreamError streamError,
+            boolean bStack) throws SQLServerException {
         String state = generateStateCode(con, streamError.getErrorNumber(), streamError.getErrorState());
 
         SQLServerException theException = new SQLServerException(obj,
@@ -278,13 +280,13 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Map XOPEN states.
+     * Maps XOPEN states.
      * 
      * @param state
      *        the state
      * @return the mapped state
      */
-    /* L0 */ static String mapFromXopen(String state) {
+    static String mapFromXopen(String state) {
         // Exceptions generated by the driver (not the database) are instanced with an XOPEN state code
         // since the SQL99 states cant be located on the web (must pay) and the XOPEN states appear to
         // be specific. Therefore if the driver is in SQL 99 mode we must map to SQL 99 state codes.
@@ -307,7 +309,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Generate the JDBC state code based on the error number returned from the database
+     * Generates the JDBC state code based on the error number returned from the database.
      * 
      * @param con
      *        the connection
@@ -317,7 +319,7 @@ public final class SQLServerException extends java.sql.SQLException {
      *        the database state
      * @return the state code
      */
-    /* L0 */ static String generateStateCode(SQLServerConnection con, int errNum, int databaseState) {
+    static String generateStateCode(SQLServerConnection con, int errNum, int databaseState) {
         // Generate a SQL 99 or XOPEN state from a database generated error code
         boolean xopenStates = (con != null && con.xopenStates);
         if (xopenStates) {
@@ -360,7 +362,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
-     * Append ClientConnectionId to an error message if applicable
+     * Appends ClientConnectionId to an error message if applicable.
      * 
      * @param errMsg
      *        - the orginal error message.
