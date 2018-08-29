@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.lang.reflect.Method;
 import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -287,38 +286,35 @@ final class KerbAuthentication extends SSPIAuthentication {
         if (validator != null) {
             return validator;
         }
-        // JVM Specific, here Sun/Oracle JVM
-        try {
-            Class<?> clz = Class.forName("sun.security.krb5.Config");
-            Method getInstance = clz.getMethod("getInstance", new Class[0]);
-            final Method getKDCList = clz.getMethod("getKDCList", new Class[] {String.class});
-            final Object instance = getInstance.invoke(null);
-            RealmValidator oracleRealmValidator = new RealmValidator() {
-
-                @Override
-                public boolean isRealmValid(String realm) {
-                    try {
-                        Object ret = getKDCList.invoke(instance, realm);
-                        return ret != null;
-                    } catch (Exception err) {
-                        return false;
+        // JVM Specific, here Oracle/SAP JVM
+        if (Util.isOracle() || Util.isSAP()) {
+            try {
+                sun.security.krb5.Config config = sun.security.krb5.Config.getInstance();
+                RealmValidator sunRealmValidator = new RealmValidator() {
+                    @Override
+                    public boolean isRealmValid(String realm) {
+                        try {
+                            Object ret = config.getKDCList(realm);
+                            return ret != null;
+                        } catch (Exception err) {
+                            return false;
+                        }
                     }
+                };
+                validator = sunRealmValidator;
+                // As explained here: https://github.com/Microsoft/mssql-jdbc/pull/40#issuecomment-281509304
+                // The default Sun Resolution mechanism is not bulletproof
+                // If it resolves a non-existing name, drop it.
+                if (!validator.isRealmValid("this.might.not.exist." + hostnameToTest)) {
+                    // Our realm validator is well working, return it
+                    authLogger.fine("Kerberos Realm Validator: Using Built-in Sun Realm Validation method.");
+                    return sunRealmValidator;
                 }
-            };
-            validator = oracleRealmValidator;
-            // As explained here: https://github.com/Microsoft/mssql-jdbc/pull/40#issuecomment-281509304
-            // The default Oracle Resolution mechanism is not bulletproof
-            // If it resolves a non-existing name, drop it.
-            if (!validator.isRealmValid("this.might.not.exist." + hostnameToTest)) {
-                // Our realm validator is well working, return it
-                authLogger.fine("Kerberos Realm Validator: Using Built-in Oracle Realm Validation method.");
-                return oracleRealmValidator;
+                authLogger.fine(
+                        "Kerberos Realm Validator: Detected buggy Sun Realm Validator, using DNSKerberosLocator.");
+            } catch (Exception e) {
+                authLogger.fine("Kerberos Realm Validator: Sun Realm Validator failed, using DNSKerberosLocator.");
             }
-            authLogger
-                    .fine("Kerberos Realm Validator: Detected buggy Oracle Realm Validator, using DNSKerberosLocator.");
-        } catch (ReflectiveOperationException notTheRightJVMException) {
-            // Ignored, we simply are not using the right JVM
-            authLogger.fine("Kerberos Realm Validator: No Oracle Realm Validator Available, using DNSKerberosLocator.");
         }
         // No implementation found, default one, not any realm is valid
         validator = new RealmValidator() {

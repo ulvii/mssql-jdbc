@@ -40,6 +40,14 @@ final class Util {
     static boolean isIBM() {
         return SYSTEM_JRE.startsWith("IBM");
     }
+    
+    static boolean isOracle() {
+        return SYSTEM_JRE.startsWith("Oracle");
+    }
+    
+    static boolean isSAP() {
+        return SYSTEM_JRE.startsWith("SAP");
+    }
 
     static final Boolean isCharType(int jdbcType) {
         switch (jdbcType) {
