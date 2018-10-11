@@ -1883,7 +1883,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
 
-                if (connectRetryCount * (connectRetryInterval + loginTimeoutSeconds) < queryTimeoutSeconds) {
+                if (queryTimeoutSeconds != 0 && queryTimeoutSeconds != -1
+                        && connectRetryCount * (connectRetryInterval + loginTimeoutSeconds) > queryTimeoutSeconds) {
                     SQLServerException.makeFromDriverError(this, this,
                             SQLServerException.getErrString("R_insufficientRetryWindow"), null, false);
                 }
