@@ -2866,7 +2866,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // serialize command execution.
             boolean commandComplete = false;
             try {
+                tdsChannel.getChannelSocket().sendUrgentData(0);
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
+            } catch (IOException e) {
+                e.printStackTrace();
             } finally {
                 // We should never displace an existing currentCommand
                 // assert null == currentCommand;

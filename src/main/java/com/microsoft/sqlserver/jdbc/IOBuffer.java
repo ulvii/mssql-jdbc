@@ -582,6 +582,10 @@ final class TDSChannel {
     // around the TCP socket. For unencrypted connections, it is
     // just the TCP socket itself.
     private Socket channelSocket;
+    
+    Socket getChannelSocket() {
+        return this.channelSocket;
+    }
 
     // Implementation of a Socket proxy that can switch from TDS-wrapped I/O
     // (using the TDSChannel itself) during SSL handshake to raw I/O over
