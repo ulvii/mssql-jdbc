@@ -26,6 +26,7 @@ import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.ByteChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -571,6 +572,8 @@ final class TDSChannel {
         return new TDSReader(this, con, command);
     }
 
+    private SocketChannel socketChannel;
+    
     // Socket for raw TCP/IP communications with SQL Server
     private Socket tcpSocket;
 
@@ -630,6 +633,7 @@ final class TDSChannel {
     TDSChannel(SQLServerConnection con) {
         this.con = con;
         traceID = "TDSChannel (" + con.toString() + ")";
+        this.socketChannel = null;
         this.tcpSocket = null;
         this.sslSocket = null;
         this.channelSocket = null;
@@ -640,6 +644,34 @@ final class TDSChannel {
         this.tdsWriter = new TDSWriter(this, con);
     }
 
+    /*
+     * SocketChannel InputStream and OutputStream APIs synchronize to block write while read is in progress.
+     * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4774871
+     * http://bugs.sun.com/bugdatabase/view_bug.do;jsessionid=1df73b21b0da0dffffffffc3063e58bbda1b9?bug_id=4509080. Reads
+     * and writes on streams are blocking however they are not blocking when done directly through SocketChannel APIs.
+     * Below function takes care of wrapping InputStream and OutputStreams APIs with SocketChannel APIs so that
+     * synchronization is avoided and we can still use non-blocking property of SocketChannel when required.
+     */
+    private static ByteChannel wrapChannel(final ByteChannel channel) {
+        return new ByteChannel() {
+            public int write(ByteBuffer src) throws IOException {
+                return channel.write(src);
+            }
+
+            public int read(ByteBuffer dst) throws IOException {
+                return channel.read(dst);
+            }
+
+            public boolean isOpen() {
+                return channel.isOpen();
+            }
+
+            public void close() throws IOException {
+                channel.close();
+            }
+        };
+    }
+    
     /**
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
      */
@@ -649,8 +681,9 @@ final class TDSChannel {
             logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
-        channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
+        SocketChannel channel = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
                 isTnirFirstAttempt, timeoutMillisForFullTimeout);
+        channelSocket = tcpSocket = channel.socket();
 
         try {
 
@@ -2219,7 +2252,7 @@ final class SocketFinder {
 
     // If a valid connected socket is found, this value would be non-null,
     // else this would be null
-    private volatile Socket selectedSocket = null;
+    private volatile SocketChannel selectedSocketChannel = null;
 
     // This would be one of the exceptions returned by the
     // socketConnector threads
@@ -2257,7 +2290,7 @@ final class SocketFinder {
      * @return connected socket
      * @throws IOException
      */
-    Socket findSocket(String hostName, int portNumber, int timeoutInMilliSeconds, boolean useParallel, boolean useTnir,
+    SocketChannel findSocket(String hostName, int portNumber, int timeoutInMilliSeconds, boolean useParallel, boolean useTnir,
             boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
@@ -2316,17 +2349,9 @@ final class SocketFinder {
                 return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
             }
             timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);
-            if (Util.isIBM()) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(this.toString() + "Using Java NIO with timeout:" + timeoutInMilliSeconds);
-                }
-                findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
-            } else {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(this.toString() + "Using Threading with timeout:" + timeoutInMilliSeconds);
-                }
-                findSocketUsingThreading(inetAddrs, portNumber, timeoutInMilliSeconds);
-            }
+
+            findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
+
 
             // If the thread continued execution due to timeout, the result may not be known.
             // In that case, update the result to failure. Note that this case is possible
@@ -2359,14 +2384,8 @@ final class SocketFinder {
                 throw selectedException;
             }
 
-        } catch (InterruptedException ex) {
-            // re-interrupt the current thread, in order to restore the thread's interrupt status.
-            Thread.currentThread().interrupt();
-
-            close(selectedSocket);
-            SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         } catch (IOException ex) {
-            close(selectedSocket);
+            close(selectedSocketChannel);
             // The code below has been moved from connectHelper.
             // If we do not move it, the functions open(caller of findSocket)
             // and findSocket will have to
@@ -2381,9 +2400,9 @@ final class SocketFinder {
         }
 
         assert result.equals(Result.SUCCESS);
-        assert selectedSocket != null : "Bug in code. Selected Socket cannot be null here.";
+        assert selectedSocketChannel != null : "Bug in code. Selected Socket cannot be null here.";
 
-        return selectedSocket;
+        return selectedSocketChannel;
     }
 
     /**
@@ -2533,7 +2552,7 @@ final class SocketFinder {
             // Note that this must be done after selector is closed. Otherwise,
             // we would get an illegalBlockingMode exception at run time.
             selectedChannel.configureBlocking(true);
-            selectedSocket = selectedChannel.socket();
+            selectedSocketChannel = selectedChannel;
 
             result = Result.SUCCESS;
         }
@@ -2544,7 +2563,7 @@ final class SocketFinder {
     // In the old code below, the logic around 0 timeout has been removed as
     // 0 timeout is not allowed. The code has been re-factored so that the logic
     // is common for hostName or InetAddress.
-    private Socket getDefaultSocket(String hostName, int portNumber, int timeoutInMilliSeconds) throws IOException {
+    private SocketChannel getDefaultSocket(String hostName, int portNumber, int timeoutInMilliSeconds) throws IOException {
         // Open the socket, with or without a timeout, throwing an UnknownHostException
         // if there is a failure to resolve the host name to an InetSocketAddress.
         //
@@ -2555,109 +2574,51 @@ final class SocketFinder {
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
 
-    private Socket getConnectedSocket(InetAddress inetAddr, int portNumber,
+    private SocketChannel getConnectedSocket(InetAddress inetAddr, int portNumber,
             int timeoutInMilliSeconds) throws IOException {
         InetSocketAddress addr = new InetSocketAddress(inetAddr, portNumber);
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
 
-    private Socket getConnectedSocket(InetSocketAddress addr, int timeoutInMilliSeconds) throws IOException {
+    private SocketChannel getConnectedSocket(InetSocketAddress addr, int timeoutInMilliSeconds) throws IOException {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
-        selectedSocket = new Socket();
-        selectedSocket.connect(addr, timeoutInMilliSeconds);
-        return selectedSocket;
-    }
-
-    private void findSocketUsingThreading(InetAddress[] inetAddrs, int portNumber,
-            int timeoutInMilliSeconds) throws IOException, InterruptedException {
-        assert timeoutInMilliSeconds != 0 : "The timeout cannot be zero";
-
-        assert inetAddrs.length != 0 : "Number of inetAddresses should not be zero in this function";
-
-        LinkedList<Socket> sockets = new LinkedList<>();
-        LinkedList<SocketConnector> socketConnectors = new LinkedList<>();
+        SocketChannel sChannel = null;
 
         try {
+            long timerExpire = System.currentTimeMillis() + timeoutInMilliSeconds;
 
-            // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
-            noOfSpawnedThreads = inetAddrs.length;
-            for (InetAddress inetAddress : inetAddrs) {
-                Socket s = new Socket();
-                sockets.add(s);
+            Selector selector = Selector.open();
 
-                InetSocketAddress inetSocketAddress = new InetSocketAddress(inetAddress, portNumber);
+            sChannel = SocketChannel.open();
+            sChannel.configureBlocking(false);
+            sChannel.register(selector, SelectionKey.OP_CONNECT);
+            sChannel.connect(addr);
+            long timeRemaining = timerExpire - System.currentTimeMillis();
 
-                SocketConnector socketConnector = new SocketConnector(s, inetSocketAddress, timeoutInMilliSeconds,
-                        this);
-                socketConnectors.add(socketConnector);
-            }
-
-            // acquire parent lock and spawn all threads
-            synchronized (parentThreadLock) {
-                for (SocketConnector sc : socketConnectors) {
-                    threadPoolExecutor.execute(sc);
+            if (1 == selector.select(timeRemaining)) { // cannot be any other value unless there is an exception
+                close(selector);
+                boolean connected = sChannel.finishConnect();
+                if (connected) {
+                    sChannel.configureBlocking(true);
                 }
-
-                long timerNow = System.currentTimeMillis();
-                long timerExpire = timerNow + timeoutInMilliSeconds;
-
-                // The below loop is to guard against the spurious wake up problem
-                while (true) {
-                    long timeRemaining = timerExpire - timerNow;
-
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString() + " TimeRemaining:" + timeRemaining + "; Result:" + result
-                                + "; Max. open thread count: " + threadPoolExecutor.getLargestPoolSize()
-                                + "; Current open thread count:" + threadPoolExecutor.getActiveCount());
-                    }
-
-                    // if there is no time left or if the result is determined, break.
-                    // Note that a dirty read of result is totally fine here.
-                    // Since this thread holds the parentThreadLock, even if we do a dirty
-                    // read here, the child thread, after updating the result, would not be
-                    // able to call notify on the parentThreadLock
-                    // (and thus finish execution) as it would be waiting on parentThreadLock
-                    // held by this thread(the parent thread).
-                    // So, this thread will wait again and then be notified by the childThread.
-                    // On the other hand, if we try to take socketFinderLock here to avoid
-                    // dirty read, we would introduce a dead lock due to the
-                    // reverse order of locking in updateResult method.
-                    if (timeRemaining <= 0 || (!result.equals(Result.UNKNOWN)))
-                        break;
-
-                    parentThreadLock.wait(timeRemaining);
-
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString() + " The parent thread wokeup.");
-                    }
-
-                    timerNow = System.currentTimeMillis();
+                // There is no else here. If connection is not successful then exception is thrown which is caught
+                // below.
+            } else {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(this.toString()
+                            + " There is no selected socketChannel. The wait calls timed out before any connect call returned or timed out.");
                 }
-
+                String message = SQLServerException.getErrString("R_connectionTimedOut");
+                selectedException = new IOException(message);
+                throw selectedException;
             }
-
-        } finally {
-            // Close all sockets except the selected one.
-            // As we close sockets pro-actively in the child threads,
-            // its possible that we close a socket twice.
-            // Closing a socket second time is a no-op.
-            // If a child thread is waiting on the connect call on a socket s,
-            // closing the socket s here ensures that an exception is thrown
-            // in the child thread immediately. This mitigates the problem
-            // of thread explosion by ensuring that unnecessary threads die
-            // quickly without waiting for "min(timeOut, 21)" seconds
-            for (Socket s : sockets) {
-                if (s != selectedSocket) {
-                    close(s);
-                }
-            }
+        } catch (IOException ex) {
+            close(sChannel);
+            throw ex;
         }
-
-        if (selectedSocket != null) {
-            result = Result.SUCCESS;
-        }
+        return sChannel;
     }
 
     /**
@@ -2711,105 +2672,6 @@ final class SocketFinder {
     }
 
     /**
-     * Used by socketConnector threads to notify the socketFinder of their connection attempt result(a connected socket
-     * or exception). It updates the result, socket and exception variables of socketFinder object. This method notifies
-     * the parent thread if a socket is found or if all the spawned threads have notified. It also closes a socket if it
-     * is not selected for use by socketFinder.
-     * 
-     * @param socket
-     *        the SocketConnector's socket
-     * @param exception
-     *        Exception that occurred in socket connector thread
-     * @param threadId
-     *        Id of the calling Thread for diagnosis
-     */
-    void updateResult(Socket socket, IOException exception, String threadId) {
-        if (result.equals(Result.UNKNOWN)) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer("The following child thread is waiting for socketFinderLock:" + threadId);
-            }
-
-            synchronized (socketFinderlock) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer("The following child thread acquired socketFinderLock:" + threadId);
-                }
-
-                if (result.equals(Result.UNKNOWN)) {
-                    // if the connection was successful and no socket has been
-                    // selected yet
-                    if (exception == null && selectedSocket == null) {
-                        selectedSocket = socket;
-                        result = Result.SUCCESS;
-                        if (logger.isLoggable(Level.FINER)) {
-                            logger.finer("The socket of the following thread has been chosen:" + threadId);
-                        }
-                    }
-
-                    // if an exception occurred
-                    if (exception != null) {
-                        updateSelectedException(exception, threadId);
-                    }
-                }
-
-                noOfThreadsThatNotified++;
-
-                // if all threads notified, but the result is still unknown,
-                // update the result to failure
-                if ((noOfThreadsThatNotified >= noOfSpawnedThreads) && result.equals(Result.UNKNOWN)) {
-                    result = Result.FAILURE;
-                }
-
-                if (!result.equals(Result.UNKNOWN)) {
-                    // 1) Note that at any point of time, there is only one
-                    // thread(parent/child thread) competing for parentThreadLock.
-                    // 2) The only time where a child thread could be waiting on
-                    // parentThreadLock is before the wait call in the parentThread
-                    // 3) After the above happens, the parent thread waits to be
-                    // notified on parentThreadLock. After being notified,
-                    // it would be the ONLY thread competing for the lock.
-                    // for the following reasons
-                    // a) The parentThreadLock is taken while holding the socketFinderLock.
-                    // So, all child threads, except one, block on socketFinderLock
-                    // (not parentThreadLock)
-                    // b) After parentThreadLock is notified by a child thread, the result
-                    // would be known(Refer the double-checked locking done at the
-                    // start of this method). So, all child threads would exit
-                    // as no-ops and would never compete with parent thread
-                    // for acquiring parentThreadLock
-                    // 4) As the parent thread is the only thread that competes for the
-                    // parentThreadLock, it need not wait to acquire the lock once it wakes
-                    // up and gets scheduled.
-                    // This results in better performance as it would close unnecessary
-                    // sockets and thus help child threads die quickly.
-
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer("The following child thread is waiting for parentThreadLock:" + threadId);
-                    }
-
-                    synchronized (parentThreadLock) {
-                        if (logger.isLoggable(Level.FINER)) {
-                            logger.finer("The following child thread acquired parentThreadLock:" + threadId);
-                        }
-
-                        parentThreadLock.notify();
-                    }
-
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(
-                                "The following child thread released parentThreadLock and notified the parent thread:"
-                                        + threadId);
-                    }
-                }
-            }
-
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer("The following child thread released socketFinderLock:" + threadId);
-            }
-        }
-
-    }
-
-    /**
      * Updates the selectedException if
      * <p>
      * a) selectedException is null
@@ -2850,103 +2712,6 @@ final class SocketFinder {
         return traceID;
     }
 }
-
-
-/**
- * This is used to connect a socket in a separate thread
- */
-final class SocketConnector implements Runnable {
-    // socket on which connection attempt would be made
-    private final Socket socket;
-
-    // the socketFinder associated with this connector
-    private final SocketFinder socketFinder;
-
-    // inetSocketAddress to connect to
-    private final InetSocketAddress inetSocketAddress;
-
-    // timeout in milliseconds
-    private final int timeoutInMilliseconds;
-
-    // Logging variables
-    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SocketConnector");
-    private final String traceID;
-
-    // Id of the thread. used for diagnosis
-    private final String threadID;
-
-    // a counter used to give unique IDs to each connector thread.
-    // this will have the id of the thread that was last created.
-    private static long lastThreadID = 0;
-
-    /**
-     * Constructs a new SocketConnector object with the associated socket and socketFinder
-     */
-    SocketConnector(Socket socket, InetSocketAddress inetSocketAddress, int timeOutInMilliSeconds,
-            SocketFinder socketFinder) {
-        this.socket = socket;
-        this.inetSocketAddress = inetSocketAddress;
-        this.timeoutInMilliseconds = timeOutInMilliSeconds;
-        this.socketFinder = socketFinder;
-        this.threadID = Long.toString(nextThreadID());
-        this.traceID = "SocketConnector:" + this.threadID + "(" + socketFinder.toString() + ")";
-    }
-
-    /**
-     * If search for socket has not finished, this function tries to connect a socket(with a timeout) synchronously. It
-     * further notifies the socketFinder the result of the connection attempt
-     */
-    public void run() {
-        IOException exception = null;
-        // Note that we do not need socketFinder lock here
-        // as we update nothing in socketFinder based on the condition.
-        // So, its perfectly fine to make a dirty read.
-        SocketFinder.Result result = socketFinder.getResult();
-        if (result.equals(SocketFinder.Result.UNKNOWN)) {
-            try {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(this.toString() + " connecting to InetSocketAddress:" + inetSocketAddress
-                            + " with timeout:" + timeoutInMilliseconds);
-                }
-
-                socket.connect(inetSocketAddress, timeoutInMilliseconds);
-            } catch (IOException ex) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(this.toString() + " exception:" + ex.getClass() + " with message:" + ex.getMessage()
-                            + " occurred while connecting to InetSocketAddress:" + inetSocketAddress);
-                }
-                exception = ex;
-            }
-
-            socketFinder.updateResult(socket, exception, this.toString());
-        }
-
-    }
-
-    /**
-     * Used for tracing
-     * 
-     * @return traceID string
-     */
-    public String toString() {
-        return traceID;
-    }
-
-    /**
-     * Generates the next unique thread id.
-     */
-    private static synchronized long nextThreadID() {
-        if (lastThreadID == Long.MAX_VALUE) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer("Resetting the Id count");
-            lastThreadID = 1;
-        } else {
-            lastThreadID++;
-        }
-        return lastThreadID;
-    }
-}
-
 
 /**
  * TDSWriter implements the client to server TDS data pipe.
