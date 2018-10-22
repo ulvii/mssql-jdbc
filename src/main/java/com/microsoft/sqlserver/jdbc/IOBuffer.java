@@ -766,7 +766,6 @@ final class TDSChannel {
 
         // Finally, with all of the SSL support out of the way, put the TDSChannel
         // back to using the TCP/IP socket and streams directly.
-
         inputStream = tcpInputStream;
         outputStream = tcpOutputStream;
         channelSocket = tcpSocket;
