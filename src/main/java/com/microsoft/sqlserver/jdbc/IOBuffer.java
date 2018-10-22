@@ -27,6 +27,7 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.ByteChannel;
+import java.nio.channels.Channels;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -56,10 +57,7 @@ import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -573,7 +571,7 @@ final class TDSChannel {
     }
 
     private SocketChannel socketChannel;
-    
+
     // Socket for raw TCP/IP communications with SQL Server
     private Socket tcpSocket;
 
@@ -647,9 +645,9 @@ final class TDSChannel {
     /*
      * SocketChannel InputStream and OutputStream APIs synchronize to block write while read is in progress.
      * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4774871
-     * http://bugs.sun.com/bugdatabase/view_bug.do;jsessionid=1df73b21b0da0dffffffffc3063e58bbda1b9?bug_id=4509080. Reads
-     * and writes on streams are blocking however they are not blocking when done directly through SocketChannel APIs.
-     * Below function takes care of wrapping InputStream and OutputStreams APIs with SocketChannel APIs so that
+     * http://bugs.sun.com/bugdatabase/view_bug.do;jsessionid=1df73b21b0da0dffffffffc3063e58bbda1b9?bug_id=4509080.
+     * Reads and writes on streams are blocking however they are not blocking when done directly through SocketChannel
+     * APIs. Below function takes care of wrapping InputStream and OutputStreams APIs with SocketChannel APIs so that
      * synchronization is avoided and we can still use non-blocking property of SocketChannel when required.
      */
     private static ByteChannel wrapChannel(final ByteChannel channel) {
@@ -671,7 +669,7 @@ final class TDSChannel {
             }
         };
     }
-    
+
     /**
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
      */
@@ -681,9 +679,9 @@ final class TDSChannel {
             logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
-        SocketChannel channel = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
+        socketChannel = socketFinder.findSocketChannel(host, port, timeoutMillis, useParallel, useTnir,
                 isTnirFirstAttempt, timeoutMillisForFullTimeout);
-        channelSocket = tcpSocket = channel.socket();
+        channelSocket = tcpSocket = socketChannel.socket();
 
         try {
 
@@ -695,8 +693,15 @@ final class TDSChannel {
             int socketTimeout = con.getSocketTimeoutMilliseconds();
             tcpSocket.setSoTimeout(socketTimeout);
 
-            inputStream = tcpInputStream = tcpSocket.getInputStream();
-            outputStream = tcpOutputStream = tcpSocket.getOutputStream();
+            /*
+             * Since InputStreams and OutputStreams obtained through SocketChannel APIs are synchronized to hit
+             * deadlocks, we wrap those APIs to use SocketChannel write and read instead.
+             */
+            ByteChannel byteChannel = wrapChannel(socketChannel);
+            inputStream = Channels.newInputStream(byteChannel);
+            outputStream = Channels.newOutputStream(byteChannel);
+            tcpInputStream = tcpSocket.getInputStream();
+            tcpOutputStream = tcpSocket.getOutputStream();
         } catch (IOException ex) {
             SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
         }
@@ -761,6 +766,7 @@ final class TDSChannel {
 
         // Finally, with all of the SSL support out of the way, put the TDSChannel
         // back to using the TCP/IP socket and streams directly.
+
         inputStream = tcpInputStream;
         outputStream = tcpOutputStream;
         channelSocket = tcpSocket;
@@ -2222,11 +2228,6 @@ final class SocketFinder {
         FAILURE// failed in finding a socket
     }
 
-    // Thread pool - the values in the constructor are chosen based on the
-    // explanation given in design_connection_director_multisubnet.doc
-    private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 5,
-            TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
-
     // When parallel connections are to be used, use minimum timeout slice of 1500 milliseconds.
     private static final int minTimeoutForParallelConnections = 1500;
 
@@ -2234,21 +2235,9 @@ final class SocketFinder {
     // data within a socketFinder object
     private final Object socketFinderlock = new Object();
 
-    // lock on which the parent thread would wait
-    // after spawning threads.
-    private final Object parentThreadLock = new Object();
-
     // indicates whether the socketFinder has succeeded or failed
     // in finding a socket or is still trying to find a socket
     private volatile Result result = Result.UNKNOWN;
-
-    // total no of socket connector threads
-    // spawned by a socketFinder object
-    private int noOfSpawnedThreads = 0;
-
-    // no of threads that finished their socket connection
-    // attempts and notified socketFinder about their result
-    private int noOfThreadsThatNotified = 0;
 
     // If a valid connected socket is found, this value would be non-null,
     // else this would be null
@@ -2287,11 +2276,12 @@ final class SocketFinder {
      * @param hostName
      * @param portNumber
      * @param timeoutInMilliSeconds
-     * @return connected socket
+     * @return connected socket channel
      * @throws IOException
      */
-    SocketChannel findSocket(String hostName, int portNumber, int timeoutInMilliSeconds, boolean useParallel, boolean useTnir,
-            boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
+    SocketChannel findSocketChannel(String hostName, int portNumber, int timeoutInMilliSeconds, boolean useParallel,
+            boolean useTnir, boolean isTnirFirstAttempt,
+            int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
         try {
@@ -2313,9 +2303,9 @@ final class SocketFinder {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
                 if (useTnir && isTnirFirstAttempt) {
-                    return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
+                    return getDefaultSocketChannel(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
                 } else if (!useTnir) {
-                    return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
+                    return getDefaultSocketChannel(hostName, portNumber, timeoutInMilliSeconds);
                 }
             }
 
@@ -2346,12 +2336,11 @@ final class SocketFinder {
 
             if (inetAddrs.length == 1) {
                 // Single address so do not start any threads
-                return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
+                return getConnectedSocketChannel(inetAddrs[0], portNumber, timeoutInMilliSeconds);
             }
             timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);
 
-            findSocketUsingJavaNIO(inetAddrs, portNumber, timeoutInMilliSeconds);
-
+            findSocketChannelFromIPs(inetAddrs, portNumber, timeoutInMilliSeconds);
 
             // If the thread continued execution due to timeout, the result may not be known.
             // In that case, update the result to failure. Note that this case is possible
@@ -2416,7 +2405,7 @@ final class SocketFinder {
      * @param timeoutInMilliSeconds
      * @throws IOException
      */
-    private void findSocketUsingJavaNIO(InetAddress[] inetAddrs, int portNumber,
+    private void findSocketChannelFromIPs(InetAddress[] inetAddrs, int portNumber,
             int timeoutInMilliSeconds) throws IOException {
         // The driver does not allow a time out of zero.
         // Also, the unit of time the user can specify in the driver is seconds.
@@ -2441,7 +2430,7 @@ final class SocketFinder {
 
                 // register the channel for connect event
                 int ops = SelectionKey.OP_CONNECT;
-                SelectionKey key = sChannel.register(selector, ops);
+                sChannel.register(selector, ops);
 
                 sChannel.connect(new InetSocketAddress(inetAddr, portNumber));
 
@@ -2563,7 +2552,8 @@ final class SocketFinder {
     // In the old code below, the logic around 0 timeout has been removed as
     // 0 timeout is not allowed. The code has been re-factored so that the logic
     // is common for hostName or InetAddress.
-    private SocketChannel getDefaultSocket(String hostName, int portNumber, int timeoutInMilliSeconds) throws IOException {
+    private SocketChannel getDefaultSocketChannel(String hostName, int portNumber,
+            int timeoutInMilliSeconds) throws IOException {
         // Open the socket, with or without a timeout, throwing an UnknownHostException
         // if there is a failure to resolve the host name to an InetSocketAddress.
         //
@@ -2571,16 +2561,17 @@ final class SocketFinder {
         // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
         // the returned InetSocketAddress as unresolved.
         InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
-        return getConnectedSocket(addr, timeoutInMilliSeconds);
+        return getConnectedSocketChannel(addr, timeoutInMilliSeconds);
     }
 
-    private SocketChannel getConnectedSocket(InetAddress inetAddr, int portNumber,
+    private SocketChannel getConnectedSocketChannel(InetAddress inetAddr, int portNumber,
             int timeoutInMilliSeconds) throws IOException {
         InetSocketAddress addr = new InetSocketAddress(inetAddr, portNumber);
-        return getConnectedSocket(addr, timeoutInMilliSeconds);
+        return getConnectedSocketChannel(addr, timeoutInMilliSeconds);
     }
 
-    private SocketChannel getConnectedSocket(InetSocketAddress addr, int timeoutInMilliSeconds) throws IOException {
+    private SocketChannel getConnectedSocketChannel(InetSocketAddress addr,
+            int timeoutInMilliSeconds) throws IOException {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
@@ -2712,6 +2703,7 @@ final class SocketFinder {
         return traceID;
     }
 }
+
 
 /**
  * TDSWriter implements the client to server TDS data pipe.
