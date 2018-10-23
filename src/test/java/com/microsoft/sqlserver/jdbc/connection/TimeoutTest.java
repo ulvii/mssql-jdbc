@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.net.SocketTimeoutException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -220,12 +221,10 @@ public class TimeoutTest extends AbstractTest {
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
                 stmt.execute("exec " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName));
                 throw new Exception(TestResource.getResource("R_expectedExceptionNotThrown"));
-            } catch (Exception e) {
-                if (!(e instanceof SQLException)) {
+            } catch (SQLException  e) {
+                if(!(e.getCause() instanceof SocketTimeoutException)) {
                     throw e;
                 }
-                assertEquals(e.getMessage(), TestResource.getResource("R_readTimedOut"),
-                        TestResource.getResource("R_invalidExceptionMessage"));
             }
 
             try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
