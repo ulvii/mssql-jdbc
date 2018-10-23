@@ -20,7 +20,7 @@ public class ReflectiveTests extends AbstractTest {
         try (Connection c = DriverManager.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
-                assertTrue("Failed to block connection", blockConnection(c));
+                assertTrue("Failed to block connection", ResiliencyUtils.blockConnection(c));
                 s.executeQuery("SELECT 1");
             } catch (SQLException e) {
                 assertTrue(e.getMessage().contains("timeout"));
@@ -28,23 +28,16 @@ public class ReflectiveTests extends AbstractTest {
         }
     }
     
-    
-    
-    
-    //uses reflection to "corrupt" a Connection's server target
-    private boolean blockConnection(Connection c) throws SQLException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
-        Class<?> connectionClass = c.getClass().getSuperclass();
-        Field fields[] = connectionClass.getDeclaredFields();
-        for (Field f : fields) {
-            System.out.println(f.getName());
-            if (f.getName() == "activeConnectionProperties" && Properties.class == f.getType()) {
-                f.setAccessible(true);
-                Properties connectionProps = (Properties) f.get(c);
-                connectionProps.setProperty("serverName", "BOGUS-SERVER-NAME");
-                f.set(c,connectionProps);
-                return true;
+    @Test
+    public void testDefaultRetry() throws SQLException {
+        try (Connection c = DriverManager.getConnection(connectionString)) {
+            try (Statement s = c.createStatement()) {
+                ResiliencyUtils.killConnection(c, connectionString);
+                assertTrue("Failed to block connection", ResiliencyUtils.blockConnection(c));
+                s.executeQuery("SELECT 1");
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("timeout"));
             }
         }
-        return false;
     }
 }

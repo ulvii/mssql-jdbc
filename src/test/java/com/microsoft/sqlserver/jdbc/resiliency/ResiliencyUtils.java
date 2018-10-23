@@ -180,6 +180,21 @@ public final class ResiliencyUtils {
             }
         }
     }
+    
+    //uses reflection to "corrupt" a Connection's server target
+    public static boolean blockConnection(Connection c) throws SQLException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
+        Field fields[] = c.getClass().getSuperclass().getDeclaredFields();
+        for (Field f : fields) {
+            if (f.getName() == "activeConnectionProperties" && Properties.class == f.getType()) {
+                f.setAccessible(true);
+                Properties connectionProps = (Properties) f.get(c);
+                connectionProps.setProperty("serverName", "BOGUS-SERVER-NAME");
+                f.set(c,connectionProps);
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static Map<String, String> getUserOptions(Connection c) throws SQLException {
         Map<String, String> options = new HashMap<>();
