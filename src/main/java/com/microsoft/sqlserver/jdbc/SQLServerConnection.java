@@ -2951,7 +2951,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             final boolean doExecute() throws SQLServerException {
-                startRequest(TDS.PKT_QUERY).writeString(sql);
+                try {
+                    startRequest(TDS.PKT_QUERY).writeString(sql);
+                } catch (SQLServerException e) {
+                    if (e.getDriverErrorCode() == SQLServerException.DRIVER_ERROR_IO_FAILED) {
+                        //IO exception, retry
+                        
+                    }
+                }
                 TDSParser.parse(startResponse(), getLogContext());
                 return true;
             }
