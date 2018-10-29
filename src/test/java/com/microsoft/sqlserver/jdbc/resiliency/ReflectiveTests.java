@@ -16,14 +16,14 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 public class ReflectiveTests extends AbstractTest {
     
     @Test
-    public void testTimeout() throws SQLException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
+    public void testTimeout() throws SQLException {
         try (Connection c = DriverManager.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
                 ResiliencyUtils.blockConnection(c);
                 s.executeQuery("SELECT 1");
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains("timeout"));
+                assertTrue("Unexpected exception caught: " + e.getMessage(), e.getMessage().contains("timeout"));
             }
         }
     }
@@ -36,7 +36,7 @@ public class ReflectiveTests extends AbstractTest {
                 ResiliencyUtils.blockConnection(c);
                 s.executeQuery("SELECT 1");
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains("timeout"));
+                assertTrue("Unexpected exception caught: " + e.getMessage(), e.getMessage().contains("timeout"));
             }
         }
     }

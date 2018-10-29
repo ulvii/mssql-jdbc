@@ -195,6 +195,7 @@ public final class ResiliencyUtils {
                     connectionProps = (Properties) f.get(c);
                     connectionProps.setProperty("serverName", "BOGUS-SERVER-NAME");
                     f.set(c, connectionProps);
+                    return;
                 } catch (IllegalArgumentException | IllegalAccessException e) {
                     Assert.fail("Failed to block connection: " + e.getMessage());
                 }
