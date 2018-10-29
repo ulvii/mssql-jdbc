@@ -20,7 +20,7 @@ public class ReflectiveTests extends AbstractTest {
         try (Connection c = DriverManager.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
-                assertTrue("Failed to block connection", ResiliencyUtils.blockConnection(c));
+                ResiliencyUtils.blockConnection(c);
                 s.executeQuery("SELECT 1");
             } catch (SQLException e) {
                 assertTrue(e.getMessage().contains("timeout"));
@@ -33,7 +33,7 @@ public class ReflectiveTests extends AbstractTest {
         try (Connection c = DriverManager.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
-                assertTrue("Failed to block connection", ResiliencyUtils.blockConnection(c));
+                ResiliencyUtils.blockConnection(c);
                 s.executeQuery("SELECT 1");
             } catch (SQLException e) {
                 assertTrue(e.getMessage().contains("timeout"));

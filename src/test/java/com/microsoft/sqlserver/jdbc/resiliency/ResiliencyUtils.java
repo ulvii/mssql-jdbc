@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import org.junit.Assert;
 
 
 public final class ResiliencyUtils {
@@ -29,30 +29,31 @@ public final class ResiliencyUtils {
         ANSI_WARNINGS(ON_OFF),
         ARITHABORT(ON_OFF),
         CONCAT_NULL_YIELDS_NULL(ON_OFF),
-        //CONTEXT_INFO,
+        // CONTEXT_INFO,
         CURSOR_CLOSE_ON_COMMIT(ON_OFF),
         DATEFIRST(new String[] {"1", "2", "3", "4", "5", "6", "7"}),
         DATEFORMAT(new String[] {"dmy", "dym", "mdy", "myd", "ydm", "ymd"}),
         DEADLOCK_PRIORITY(new String[] {"LOW", "NORMAL", "HIGH", "-10", "-9", "-8", "-7", "-6", "-5", "-4", "-3", "-2",
                 "-1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}),
-        //FIPS_FLAGGER(new String[] {"ENTRY", "FULL", "INTERMEDIATE", "OFF"}), not picked up by dbcc useroptions
+        // FIPS_FLAGGER(new String[] {"ENTRY", "FULL", "INTERMEDIATE", "OFF"}), not picked up by dbcc useroptions
         // FMTONLY fails queries
         FORCEPLAN(ON_OFF),
-        //IDENTITY_INSERT(ON_OFF),
+        // IDENTITY_INSERT(ON_OFF),
         IMPLICIT_TRANSACTIONS(ON_OFF),
         LANGUAGE(new String[] {"English", "German", "French", "Japanese", "Danish", "Spanish", "Italian", "Dutch",
                 "Norwegian", "Portuguese", "Finnish", "Swedish", "Czech", "Hungarian", "Polish", "Romanian", "Croatian",
                 "Slovak", "Slovenian", "Greek", "Bulgarian", "Russian", "Turkish", "British English", "Estonian",
                 "Latvian", "Lithuanian", "Brazilian", "Traditional Chinese", "Korean", "Simplified Chinese", "Arabic",
                 "Thai"}) {
-            @Override String getValue() {
-                return "N'"+value+"'";
+            @Override
+            String getValue() {
+                return "N'" + value + "'";
             }
         },
         LOCK_TIMEOUT(null) {
             @Override
             void init() {
-                this.value = String.valueOf(getRandomInt(0,8000));
+                this.value = String.valueOf(getRandomInt(0, 8000));
             }
         },
         NOCOUNT(ON_OFF),
@@ -62,15 +63,15 @@ public final class ResiliencyUtils {
         QUERY_GOVERNOR_COST_LIMIT(null) {
             @Override
             void init() {
-                this.value = String.valueOf(getRandomInt(0,8000));
-            }  
+                this.value = String.valueOf(getRandomInt(0, 8000));
+            }
         },
         QUOTED_IDENTIFIER(ON_OFF),
         REMOTE_PROC_TRANSACTIONS(ON_OFF),
         ROWCOUNT(null) {
             @Override
             void init() {
-                this.value = String.valueOf(getRandomInt(0,8000));
+                this.value = String.valueOf(getRandomInt(0, 8000));
             }
         },
         // SHOWPLAN_ALL/SHOWPLAN_TEXT/SHOWPLAN_XML fails queries
@@ -101,7 +102,7 @@ public final class ResiliencyUtils {
         TEXTSIZE(null) {
             @Override
             void init() {
-                this.value = String.valueOf(getRandomInt(0,8000));
+                this.value = String.valueOf(getRandomInt(0, 8000));
             }
         },
         TRANSACTION_ISOLATION_LEVEL(new String[] {"READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ", "SNAPSHOT",
@@ -120,20 +121,22 @@ public final class ResiliencyUtils {
             this.possibleOptions = s;
             init();
         }
-        
+
         void init() {
             this.value = possibleOptions[getRandomInt(0, possibleOptions.length)];
         }
-        
-        String getValue() { return value; }
+
+        String getValue() {
+            return value;
+        }
     }
-    
+
     class killConnectionThread implements Runnable {
-        
+
         Connection c;
         String cString;
         int sleepTime = 0;
-        
+
         public void run() {
             try {
                 int sessionID = 0;
@@ -151,15 +154,15 @@ public final class ResiliencyUtils {
                     }
                 }
             } catch (SQLException | InterruptedException e) {
-                //handle exception
+                // handle exception
             }
         }
-        
+
         public void setProperties(Connection c, String cString) {
             this.c = c;
             this.cString = cString;
         }
-        
+
         public void setTimer(int millis) {
             this.sleepTime = millis;
         }
@@ -180,20 +183,24 @@ public final class ResiliencyUtils {
             }
         }
     }
-    
-    //uses reflection to "corrupt" a Connection's server target
-    public static boolean blockConnection(Connection c) throws SQLException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
+
+    // uses reflection to "corrupt" a Connection's server target
+    public static void blockConnection(Connection c) throws SQLException {
         Field fields[] = c.getClass().getSuperclass().getDeclaredFields();
         for (Field f : fields) {
             if (f.getName() == "activeConnectionProperties" && Properties.class == f.getType()) {
                 f.setAccessible(true);
-                Properties connectionProps = (Properties) f.get(c);
-                connectionProps.setProperty("serverName", "BOGUS-SERVER-NAME");
-                f.set(c,connectionProps);
-                return true;
+                Properties connectionProps;
+                try {
+                    connectionProps = (Properties) f.get(c);
+                    connectionProps.setProperty("serverName", "BOGUS-SERVER-NAME");
+                    f.set(c, connectionProps);
+                } catch (IllegalArgumentException | IllegalAccessException e) {
+                    Assert.fail("Failed to block connection: " + e.getMessage());
+                }
             }
         }
-        return false;
+        Assert.fail("Failed to block connection.");
     }
 
     public static Map<String, String> getUserOptions(Connection c) throws SQLException {
@@ -217,15 +224,15 @@ public final class ResiliencyUtils {
             }
         }
     }
-    
+
     public static int getRandomInt(int min, int max) {
         return ThreadLocalRandom.current().nextInt(min, max);
     }
-    
+
     public static String getRandomString(String pool, int length) {
         String s = "";
         for (int i = 0; i < length; i++) {
-            s.concat(String.valueOf(pool.charAt(getRandomInt(0,pool.length()))));
+            s.concat(String.valueOf(pool.charAt(getRandomInt(0, pool.length()))));
         }
         return s;
     }
