@@ -237,4 +237,11 @@ public final class ResiliencyUtils {
         }
         return s;
     }
+    
+    public static String setConnectionProps(String base, Map<String,String> props) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(base);
+        props.forEach((k,v) -> sb.append(k).append("=").append(v).append(";"));
+        return sb.toString();
+    }
 }
