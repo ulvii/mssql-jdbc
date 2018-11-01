@@ -2913,20 +2913,30 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // (to avoid TDS protocol errors), just synchronize to
             // serialize command execution.
             boolean commandComplete = false;
-            try {
-                commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
-            } finally {
-                // We should never displace an existing currentCommand
-                // assert null == currentCommand;
+            boolean doRetry = false;
+            do {
+                try {
+                    commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
+                } catch (SQLServerException e) {
+                    if (e.getDriverErrorCode() == SQLServerException.DRIVER_ERROR_SOCKET_WRITE_FAILED) {
+                        doRetry = true;
+                        
+                    } else {
+                        doRetry = false;
+                        throw e;
+                    }
+                } finally {
+                    // We should never displace an existing currentCommand
+                    // assert null == currentCommand;
 
-                // If execution of the new command left response bytes on the wire
-                // (e.g. a large ResultSet or complex response with multiple results)
-                // then remember it as the current command so that any subsequent call
-                // to executeCommand will detach it before executing another new command.
-                if (!commandComplete && !isSessionUnAvailable())
-                    currentCommand = newCommand;
-            }
-
+                    // If execution of the new command left response bytes on the wire
+                    // (e.g. a large ResultSet or complex response with multiple results)
+                    // then remember it as the current command so that any subsequent call
+                    // to executeCommand will detach it before executing another new command.
+                    if (!commandComplete && !isSessionUnAvailable())
+                        currentCommand = newCommand;
+                }
+            } while (doRetry);
             return commandComplete;
         }
     }

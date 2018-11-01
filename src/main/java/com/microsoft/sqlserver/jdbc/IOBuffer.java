@@ -1995,8 +1995,15 @@ final class TDSChannel {
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " write failed:" + e.getMessage());
-
-            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
+            
+            String eMsg = e.getMessage();
+            if (eMsg.equals("Connection reset") || eMsg.equals("Socket closed")) {
+                //use the con object to determine if session is recoverable, etc
+                if (true) {
+                    con.terminate(SQLServerException.DRIVER_ERROR_SOCKET_WRITE_FAILED, eMsg, e);
+                }
+            }
+            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, eMsg, e);
         }
     }
 
