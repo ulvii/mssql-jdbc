@@ -2919,6 +2919,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
                 } catch (SQLServerException e) {
                     if (e.getDriverErrorCode() == SQLServerException.DRIVER_ERROR_SOCKET_WRITE_FAILED) {
+                        //add other conditions like sessionState.canReconnect, 
                         doRetry = true;
                         
                     } else {

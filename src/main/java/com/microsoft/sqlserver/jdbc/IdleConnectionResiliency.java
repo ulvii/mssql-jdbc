@@ -204,3 +204,26 @@ class SessionStateTable {
         this.sessionStateDelta = sessionStateDelta;
     }
 }
+
+
+class ReconnectThread implements Runnable {
+    private static ReconnectThread rt = null;
+    
+    private boolean reconnecting = false;
+    private volatile boolean stopRequest = false;
+
+    private int connectRetryCount = 0;
+    //Singleton class, do not allow methods to instantiate
+    private ReconnectThread() {};
+
+    public static ReconnectThread getInstance() {
+        if (rt == null) {
+            rt = new ReconnectThread();
+        }
+        return rt;
+    }
+
+    public void run() {
+        reconnecting = true;
+    }
+}
