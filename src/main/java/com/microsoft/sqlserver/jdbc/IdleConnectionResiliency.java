@@ -206,24 +206,134 @@ class SessionStateTable {
 }
 
 
-class ReconnectThread implements Runnable {
-    private static ReconnectThread rt = null;
-    
+final class ReconnectThread implements Runnable {
+    private SQLServerConnection con = null;
+    private Object reconnectSync = new Object();
+    private Object stopReconSync = new Object();
+    private SQLServerException eReceived = null;
+
     private boolean reconnecting = false;
     private volatile boolean stopRequest = false;
-
     private int connectRetryCount = 0;
-    //Singleton class, do not allow methods to instantiate
+
     private ReconnectThread() {};
 
-    public static ReconnectThread getInstance() {
-        if (rt == null) {
-            rt = new ReconnectThread();
-        }
-        return rt;
+    ReconnectThread(SQLServerConnection sqlC) {
+        this.con = sqlC;
     }
 
     public void run() {
         reconnecting = true;
+        try {
+            eReceived = null;
+            con.connect(null, con.getPooledConnectionParent());
+        } catch (SQLServerException se) {
+            if (!stopRequest) {
+                eReceived = se;
+                if (isFatalError(se)) {
+                    reconnecting = false;
+                } else {
+                    try {
+                        synchronized (reconnectSync) {
+                            reconnectSync.notifyAll();
+                        }
+
+                        if (connectRetryCount > 1) {
+                            Thread.sleep(con.getRetryInterval() * 1000);
+                        }
+                    } catch (InterruptedException ie) {
+                        // eat it? log it? throw it?
+                    }
+                }
+            }
+        } finally {
+            connectRetryCount--;
+        }
+
+        if ((connectRetryCount < 0) && (reconnecting)) { // reconnection could not happen while all reconnection
+                                                         // attempts are exhausted
+            eReceived = new SQLServerException(SQLServerException.getErrString("R_crClientAllRecoveryAttemptsFailed"),
+                    eReceived);
+        }
+
+        reconnecting = false;
+        if (stopRequest) {
+            synchronized (stopReconSync) {
+                stopReconSync.notify();
+            }
+        }
+        synchronized (reconnectSync) {
+            reconnectSync.notify();
+        }
+        return;
+    }
+
+    boolean isRunning() {
+        return reconnecting;
+    }
+
+    private boolean isFatalError(SQLServerException e) {
+        // NOTE: If these conditions are modified, consider modification to conditions in SQLServerConnection::login()
+        // and
+        // Reconnect::run()
+        if ((SQLServerException.LOGON_FAILED == e.getErrorCode()) // actual logon failed, i.e. bad password
+                || (SQLServerException.PASSWORD_EXPIRED == e.getErrorCode()) // actual logon failed, i.e. password
+                                                                             // isExpired
+                || (SQLServerException.DRIVER_ERROR_INVALID_TDS == e.getDriverErrorCode()) // invalid TDS received from
+                                                                                           // server
+                || (SQLServerException.DRIVER_ERROR_SSL_FAILED == e.getDriverErrorCode()) // failure negotiating SSL
+                || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()) // failure TLS1.2
+                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode()) // socket timeout ocurred
+                || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == e.getDriverErrorCode())) // unsupported
+                                                                                                   // configuration
+                                                                                                   // (e.g. Sphinx,
+                                                                                                   // invalid
+                                                                                                   // packet size, etc.)
+            return true;
+        else
+            return false;
+    }
+
+    public void reset() {
+        connectRetryCount = con.getRetryCount();
+        eReceived = null;
+        stopRequest = false;
+    }
+
+    Object getLock() {
+        return reconnectSync;
+    }
+
+    void stop(boolean blocking) {
+        // if (connectionlogger.isLoggable(Level.FINER)) {
+        // connectionlogger.finer(this.toString() + "Reconnection stopping");
+        // }
+        stopRequest = true;
+
+        if (blocking && reconnecting) {
+            // If stopRequest is received while reconnecting is true, only then can we receive notify on
+            // stopReconnectionObject
+            try {
+                synchronized (stopReconSync) {
+                    if (reconnecting)
+                        stopReconSync.wait(); // Wait only if reconnecting is still true. This is to
+                                              // avoid a race condition where
+                                              // reconnecting set to false and
+                                              // stopReconnectionSynchronizer has already notified
+                                              // even before following wait() is called.
+                }
+            } catch (InterruptedException e) {
+                // Driver does not generate any interrupts that will generate this exception hence ignoring. This
+                // exception should not break
+                // current flow of execution hence catching it.
+                // if (connectionlogger.isLoggable(Level.FINER)) {
+                // connectionlogger.finer(this.toString() + "Interrupt in reconnection stop() is unexpected.");
+                // }
+            }
+        }
+    }
+
+    SQLServerException getException() {
+        return eReceived;
     }
 }

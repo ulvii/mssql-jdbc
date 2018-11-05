@@ -1997,7 +1997,7 @@ final class TDSChannel {
                 logger.finer(toString() + " write failed:" + e.getMessage());
             
             String eMsg = e.getMessage();
-            if (eMsg.equals("Connection reset") || eMsg.equals("Socket closed")) {
+            if (eMsg.contains("Connection reset") || eMsg.equals("Socket closed")) {
                 //use the con object to determine if session is recoverable, etc
                 if (true) {
                     con.terminate(SQLServerException.DRIVER_ERROR_SOCKET_WRITE_FAILED, eMsg, e);
@@ -7289,6 +7289,27 @@ abstract class TDSCommand {
             // of trying to send a cancel to the server.
             throw e;
         }
+    }
+    
+    // Before connection resiliency, interrupts were disabled during login as they were used only during query execution however we want to enable     
+    // them during reconnection.        
+    void startQueryTimeoutTimer(boolean updateInterrupts) {     
+        if (null != timeoutTimer)   // start the timer only if it was/is not already started        
+        {       
+            if (logger.isLoggable(Level.FINEST))        
+                logger.finest(this.toString() + ": Starting timer...");     
+        
+            if (updateInterrupts) {     
+                synchronized (interruptLock) {      
+                    wasInterrupted = false;     
+                    interruptReason = null;     
+                    interruptsEnabled = true; // interrupts are disabled by default. During reconnection when quertimeout timer is started, it does     
+                                              // not cause any interrupt since interrupts are disabled. Enabled here so that reconnection is stopped        
+                                              // after query timeout.       
+                }       
+            }       
+            timeoutTimer.start();       
+        }       
     }
 
     /**
