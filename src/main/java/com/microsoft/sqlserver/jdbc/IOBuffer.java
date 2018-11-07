@@ -7103,6 +7103,9 @@ abstract class TDSCommand {
     // These are set/reset at command execution time.
     // Volatile ensures visibility to execution thread and interrupt thread
     private volatile TDSWriter tdsWriter;
+    TDSWriter getTdsWriter() {
+        return tdsWriter;
+    }
     private volatile TDSReader tdsReader;
 
     protected TDSWriter getTDSWriter() {

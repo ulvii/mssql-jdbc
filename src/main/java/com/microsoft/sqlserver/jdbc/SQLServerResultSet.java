@@ -608,7 +608,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         isClosed = true;
 
         // Discard the current fetch buffer contents.
-        discardFetchBuffer();
+        //discardFetchBuffer();
+        try {
+            stmt.getCurrentCommand().getTdsWriter().sendAttention();
+            //We still need to read and discard the already retrieved rows. 
+            discardFetchBuffer();
+        } catch (SQLServerException e) {
+            e.printStackTrace();
+        }
 
         // Close the server cursor if there is one.
         closeServerCursor();

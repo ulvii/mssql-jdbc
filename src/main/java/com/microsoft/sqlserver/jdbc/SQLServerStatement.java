@@ -131,6 +131,9 @@ public class SQLServerStatement implements ISQLServerStatement {
      * currentCommand to the cancelling thread.
      */
     private volatile TDSCommand currentCommand = null;
+    public TDSCommand getCurrentCommand() {
+        return currentCommand;
+    }
     private TDSCommand lastStmtExecCmd = null;
 
     final void discardLastExecutionResults() {
