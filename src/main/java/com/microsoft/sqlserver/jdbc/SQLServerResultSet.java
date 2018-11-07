@@ -610,8 +610,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Discard the current fetch buffer contents.
         //discardFetchBuffer();
         try {
+            // TDS attention 2.2.1.7
             stmt.getCurrentCommand().getTdsWriter().sendAttention();
-            //We still need to read and discard the already retrieved rows. 
+            //We still need to read until we receive attention acknowledgement. TDS 2.2.2.9
             discardFetchBuffer();
         } catch (SQLServerException e) {
             e.printStackTrace();
