@@ -3020,7 +3020,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             rt.reset();
                         }
                     } else {
-                        doRetry = false;
                         throw se;
                     }
                 } finally {
@@ -3092,14 +3091,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             final boolean doExecute() throws SQLServerException {
-                try {
-                    startRequest(TDS.PKT_QUERY).writeString(sql);
-                } catch (SQLServerException e) {
-                    if (e.getDriverErrorCode() == SQLServerException.DRIVER_ERROR_IO_FAILED) {
-                        // IO exception, retry
-
-                    }
-                }
+                startRequest(TDS.PKT_QUERY).writeString(sql);
                 TDSParser.parse(startResponse(), getLogContext());
                 return true;
             }

@@ -1997,13 +1997,13 @@ final class TDSChannel {
                 logger.finer(toString() + " write failed:" + e.getMessage());
             
             String eMsg = e.getMessage();
-            if (eMsg.contains("Connection reset") || eMsg.equals("Socket closed")) {
-                //use the con object to determine if session is recoverable, etc
-                if (true) {
-                    con.terminate(SQLServerException.DRIVER_ERROR_SOCKET_WRITE_FAILED, eMsg, e);
-                }
+            if (eMsg.contains("connection reset") || eMsg.contains("Socket closed")) {
+                //Can use con object to check if session is recoverable here instead
+                //Checks only triggered on exceptions, possible performance gain?
+                con.terminate(SQLServerException.DRIVER_ERROR_SOCKET_WRITE_FAILED, eMsg, e);
+            } else {
+                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, eMsg, e);
             }
-            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, eMsg, e);
         }
     }
 

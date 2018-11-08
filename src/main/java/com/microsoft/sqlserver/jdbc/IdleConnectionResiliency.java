@@ -294,7 +294,7 @@ final class ReconnectThread implements Runnable {
             return false;
     }
 
-    public void reset() {
+    void reset() {
         connectRetryCount = con.getRetryCount();
         eReceived = null;
         stopRequest = false;
