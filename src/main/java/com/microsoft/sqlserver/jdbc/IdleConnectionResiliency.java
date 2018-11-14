@@ -277,6 +277,15 @@ class SessionStateTable {
     void setSessionStateDelta(SessionStateValue[] sessionStateDelta) {
         this.sessionStateDelta = sessionStateDelta;
     }
+    
+    void resetDelta() {
+        for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
+            if (sessionStateDelta[i] != null && sessionStateDelta[i].getData() != null) {
+                sessionStateDelta[i] = null;
+            }
+        }
+        masterRecoveryDisabled = false;
+    }
 
     String getOriginalCatalog() {
         return originalCatalog;
@@ -314,6 +323,7 @@ class SessionStateTable {
 final class ReconnectThread extends Thread {
     private SQLServerConnection con = null;
     private SQLServerException eReceived = null;
+    private TDSCommand command = null;
 
     private volatile boolean stopRequested = false;
     private int connectRetryCount = 0;
@@ -329,14 +339,15 @@ final class ReconnectThread extends Thread {
         this.con = sqlC;
     }
 
-    private void reset() {
+    //Resets the thread
+    void init(TDSCommand cmd) {
+        this.command = cmd;
         connectRetryCount = con.getRetryCount();
         eReceived = null;
         stopRequested = false;
     }
 
     public void run() {
-        reset();
         boolean keepRetrying = true;
 
         while ((connectRetryCount != 0) && (!stopRequested) && keepRetrying) {
@@ -361,6 +372,13 @@ final class ReconnectThread extends Thread {
                 }
             } finally {
                 connectRetryCount--;
+                try {
+                    command.checkForInterrupt();
+                } catch (SQLServerException e) {
+                    //Interrupted, timeout occurred. Stop retrying.
+                    keepRetrying = false;
+                    eReceived = e;
+                }
             }
         }
 

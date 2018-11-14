@@ -875,6 +875,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         sqlWarnings = null;
         sCatalog = originalCatalog;
         databaseMetaData = null;
+
+        if (!sessionRecovery.getReconnectThread().isAlive()) {
+            /* 
+             * Session state is reset along with all other client side variables so that the session state is initialized
+             * before running next command on the connection obtained from connection pool
+             */
+            if (sessionRecovery.getSessionStateTable() != null) {
+                sessionRecovery.getSessionStateTable().resetDelta();
+                sessionRecovery.resetUnprocessedResponseCount();
+                sessionRecovery.setConnectionRecoveryPossible(true);
+            }
+        }
     }
 
     /** Limit for the maximum number of rows returned from queries on this connection */
@@ -2955,6 +2967,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
                         }
+                        sessionRecovery.getReconnectThread().init(newCommand);
                         sessionRecovery.getReconnectThread().start();
                         /*
                          * Join only blocks the thread that started the reconnect. Currently can't think of a good
