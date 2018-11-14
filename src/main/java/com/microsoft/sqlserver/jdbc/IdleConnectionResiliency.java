@@ -110,6 +110,10 @@ class SessionRecoveryFeature {
                 connectionRecoveryPossible = false;
         }
     }
+    
+    int getUnprocessedResponseCount() {
+        return unprocessedResponseCount.get();
+    }
 }
 
 

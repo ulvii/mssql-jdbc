@@ -2966,7 +2966,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                      * connection recoverable, is connection recovery turned on, etc...
                      */
                     if (connectRetryCount > 0 && sessionRecovery.isConnectionRecoveryNegotiated()
-                            && sessionRecovery.isConnectionRecoveryPossible() && isConnectionDead()) {
+                            && !sessionRecovery.getSessionStateTable().isMasterRecoveryDisabled()
+                            && sessionRecovery.getUnprocessedResponseCount() == 0 && isConnectionDead()) {
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
                         }
