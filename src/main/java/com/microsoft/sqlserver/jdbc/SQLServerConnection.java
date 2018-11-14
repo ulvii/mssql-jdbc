@@ -877,9 +877,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         databaseMetaData = null;
 
         if (!sessionRecovery.getReconnectThread().isAlive()) {
-            /* 
-             * Session state is reset along with all other client side variables so that the session state is initialized
-             * before running next command on the connection obtained from connection pool
+            /*
+             * Session state is reset along with all other client side variables so that the session state is
+             * initialized before running next command on the connection obtained from connection pool
              */
             if (sessionRecovery.getSessionStateTable() != null) {
                 sessionRecovery.getSessionStateTable().resetDelta();
@@ -2466,10 +2466,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         if (sessionRecovery.getReconnectThread().isAlive()) {
-            if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable().getOriginalNegotiatedEncryptionLevel()) {
-                connectionlogger.warning(
-                        toString() + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
-                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
+            if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable()
+                    .getOriginalNegotiatedEncryptionLevel()) {
+                connectionlogger.warning(toString()
+                        + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
+                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG,
+                        SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
                 // fails fast similar to pre-login errors.
             }
             try {
@@ -2963,7 +2965,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                      * TODO: add additional requirements for CR to be enabled such as unprocessed response count, is
                      * connection recoverable, is connection recovery turned on, etc...
                      */
-                    if (isConnectionDead()) {
+                    if (connectRetryCount > 0 && sessionRecovery.isConnectionRecoveryNegotiated()
+                            && sessionRecovery.isConnectionRecoveryPossible() && isConnectionDead()) {
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
                         }
@@ -2978,7 +2981,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             sessionRecovery.getReconnectThread().join();
                         } catch (InterruptedException e) {
                             // Keep compiler happy, something's probably seriously wrong if this line is run
-                            SQLServerException.makeFromDriverError(this, sessionRecovery.getReconnectThread(), e.getMessage(), null, false);
+                            SQLServerException.makeFromDriverError(this, sessionRecovery.getReconnectThread(),
+                                    e.getMessage(), null, false);
                         }
                         if (sessionRecovery.getReconnectThread().getException() != null) {
                             if (connectionlogger.isLoggable(Level.FINER)) {
@@ -5158,7 +5162,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
 
-        if(!sessionRecovery.getReconnectThread().isAlive()) {
+        if (!sessionRecovery.getReconnectThread().isAlive()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
             sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);
