@@ -17,6 +17,14 @@ class SessionRecoveryFeature {
     private AtomicInteger unprocessedResponseCount = new AtomicInteger();
     private boolean connectionRecoveryPossible;
 
+    /*
+     * Variables needed to perform a reconnect, these are not necessarily determined from just the connection string
+     */
+    private String loginInstanceValue;
+    private int loginNPort;
+    private FailoverInfo loginFailoverInfo;
+    private int loginLoginTimeoutSeconds;
+
     SessionRecoveryFeature(SQLServerConnection connection) {
         this.connection = connection;
         reconnectThread = new ReconnectThread(connection);
@@ -113,6 +121,29 @@ class SessionRecoveryFeature {
     
     int getUnprocessedResponseCount() {
         return unprocessedResponseCount.get();
+    }
+
+    void setLoginParameters(String instanceValue, int nPort, FailoverInfo fo, int loginTimeoutSeconds) {
+        this.loginInstanceValue = instanceValue;
+        this.loginNPort = nPort;
+        this.loginFailoverInfo = fo;
+        this.loginLoginTimeoutSeconds = loginTimeoutSeconds;
+    }
+
+    String getInstanceValue() {
+        return loginInstanceValue;
+    }
+
+    int getNPort() {
+        return loginNPort;
+    }
+
+    FailoverInfo getFailoverInfo() {
+        return loginFailoverInfo;
+    }
+
+    int getLoginTimeoutSeconds() {
+        return loginLoginTimeoutSeconds;
     }
 }
 
@@ -258,8 +289,8 @@ class SessionStateTable {
         return length;
     }
 
-    boolean isSessionRecoverable(){
-        return(!isMasterRecoveryDisabled() && (0 == unRecoverableSessionStateCount.get()));
+    boolean isSessionRecoverable() {
+        return (!isMasterRecoveryDisabled() && (0 == unRecoverableSessionStateCount.get()));
     }
 
     boolean isMasterRecoveryDisabled() {
@@ -327,6 +358,7 @@ class SessionStateTable {
         this.originalNegotiatedEncryptionLevel = originalNegotiatedEncryptionLevel;
     }
 }
+
 
 final class ReconnectThread extends Thread {
     private SQLServerConnection con = null;
