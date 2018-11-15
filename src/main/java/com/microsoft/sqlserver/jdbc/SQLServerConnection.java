@@ -875,18 +875,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         sqlWarnings = null;
         sCatalog = originalCatalog;
         databaseMetaData = null;
-
-        if (!sessionRecovery.getReconnectThread().isAlive()) {
-            /*
-             * Session state is reset along with all other client side variables so that the session state is
-             * initialized before running next command on the connection obtained from connection pool
-             */
-            if (sessionRecovery.getSessionStateTable() != null) {
-                sessionRecovery.getSessionStateTable().resetDelta();
-                sessionRecovery.resetUnprocessedResponseCount();
-                sessionRecovery.setConnectionRecoveryPossible(true);
-            }
-        }
     }
 
     /** Limit for the maximum number of rows returned from queries on this connection */
@@ -2466,12 +2454,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         if (sessionRecovery.getReconnectThread().isAlive()) {
-            if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable()
-                    .getOriginalNegotiatedEncryptionLevel()) {
-                connectionlogger.warning(toString()
-                        + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
-                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG,
-                        SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
+            if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable().getOriginalNegotiatedEncryptionLevel()) {
+                connectionlogger.warning(
+                        toString() + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
+                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
                 // fails fast similar to pre-login errors.
             }
             try {
@@ -2483,8 +2469,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         } else {
             // We have successfully connected, now do the login. Log on takes seconds timeout
-            sessionRecovery.setSessionStateTable(new SessionStateTable());
-            sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
+            if(connectRetryCount > 0 && null == sessionRecovery.getSessionStateTable()) {
+                sessionRecovery.setSessionStateTable(new SessionStateTable());
+                sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
+            }
             executeCommand(new LogonCommand());
         }
     }
@@ -2965,13 +2953,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                      * TODO: add additional requirements for CR to be enabled such as unprocessed response count, is
                      * connection recoverable, is connection recovery turned on, etc...
                      */
-                    if (connectRetryCount > 0 && sessionRecovery.isConnectionRecoveryNegotiated()
-                            && !sessionRecovery.getSessionStateTable().isMasterRecoveryDisabled()
-                            && sessionRecovery.getUnprocessedResponseCount() == 0 && isConnectionDead()) {
+                    if (isConnectionDead()) {
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
                         }
-                        sessionRecovery.getReconnectThread().init(newCommand);
                         sessionRecovery.getReconnectThread().start();
                         /*
                          * Join only blocks the thread that started the reconnect. Currently can't think of a good
@@ -2982,8 +2967,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             sessionRecovery.getReconnectThread().join();
                         } catch (InterruptedException e) {
                             // Keep compiler happy, something's probably seriously wrong if this line is run
-                            SQLServerException.makeFromDriverError(this, sessionRecovery.getReconnectThread(),
-                                    e.getMessage(), null, false);
+                            SQLServerException.makeFromDriverError(this, sessionRecovery.getReconnectThread(), e.getMessage(), null, false);
                         }
                         if (sessionRecovery.getReconnectThread().getException() != null) {
                             if (connectionlogger.isLoggable(Level.FINER)) {
@@ -4674,6 +4658,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sessionRecovery.parseInitialSessionStateData(tdsReader,
                         sessionRecovery.getSessionStateTable().getSessionStateInitial());
                 sessionRecovery.setConnectionRecoveryNegotiated(true);
+                sessionRecovery.setConnectionRecoveryPossible(true);
                 break;
             }
             default: {
@@ -5160,10 +5145,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         TDSReader tdsReader;
         do {
             tdsReader = logonCommand.startResponse();
+            sessionRecovery.setConnectionRecoveryPossible(false);
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
 
-        if (!sessionRecovery.getReconnectThread().isAlive()) {
+        if(sessionRecovery.getReconnectThread().isAlive() && !sessionRecovery.isConnectionRecoveryPossible()) {
+            if(connectionlogger.isLoggable(Level.SEVERE)) {
+                connectionlogger.severe(this.toString() + "SessionRecovery feature extension ack was not sent by the server during reconnection.");
+            }
+            terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS, SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin"));
+        }
+        if(connectRetryCount > 0 && !sessionRecovery.getReconnectThread().isAlive()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
             sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);
