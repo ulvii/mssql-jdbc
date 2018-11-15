@@ -356,12 +356,14 @@ final class ReconnectThread extends Thread {
 
         while ((connectRetryCount != 0) && (!stopRequested) && keepRetrying) {
             try {
+                System.out.println("Retrying");
                 eReceived = null;
                 con.connect(null, con.getPooledConnectionParent());
                 keepRetrying = false;
             } catch (SQLServerException e) {
                 if (!stopRequested) {
                     eReceived = e;
+                    System.out.println(e.getMessage());
                     if (con.isFatalError(e)) {
                         keepRetrying = false;
                     } else {
