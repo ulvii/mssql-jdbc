@@ -7168,6 +7168,7 @@ abstract class TDSCommand {
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
     private TdsTimeoutCommand timeoutCommand;
+    private boolean registeredInPoller = false;
 
     protected int getQueryTimeoutSeconds() {
         return this.queryTimeoutSeconds;
@@ -7179,6 +7180,18 @@ abstract class TDSCommand {
 
     final boolean readingResponse() {
         return readingResponse;
+    }
+    
+    synchronized void addToPoller() {
+        if (!registeredInPoller) {
+            // If command execution is subject to timeout then start timing until
+            // the server returns the first response packet.
+            if (queryTimeoutSeconds > 0) {
+                this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
+                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
+                registeredInPoller = true;
+            }
+        }
     }
 
     /**
@@ -7196,6 +7209,8 @@ abstract class TDSCommand {
         this.cancelQueryTimeoutSeconds = cancelQueryTimeoutSeconds;
     }
 
+    
+    boolean wasExecuted = false;
     /**
      * Executes this command.
      *
@@ -7206,6 +7221,7 @@ abstract class TDSCommand {
      */
 
     boolean execute(TDSWriter tdsWriter, TDSReader tdsReader) throws SQLServerException {
+        wasExecuted = true;
         this.tdsWriter = tdsWriter;
         this.tdsReader = tdsReader;
         assert null != tdsReader;
@@ -7579,13 +7595,8 @@ abstract class TDSCommand {
 
             throw e;
         }
-
-        // If command execution is subject to timeout then start timing until
-        // the server returns the first response packet.
-        if (queryTimeoutSeconds > 0) {
-            this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
-            TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
-        }
+        
+        addToPoller();
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Reading response...");

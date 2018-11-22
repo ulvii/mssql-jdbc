@@ -388,6 +388,9 @@ final class ReconnectThread extends Thread {
     }
 
     public void run() {
+        boolean interruptsEnabled = command.getInterruptsEnabled();
+        command.setInterruptsEnabled(true);
+        command.addToPoller();
         boolean keepRetrying = true;
 
         while ((connectRetryCount != 0) && (!stopRequested) && keepRetrying) {
@@ -429,6 +432,7 @@ final class ReconnectThread extends Thread {
                     eReceived);
         }
 
+        command.setInterruptsEnabled(interruptsEnabled);
         return;
     }
 
