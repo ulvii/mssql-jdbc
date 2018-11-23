@@ -67,7 +67,7 @@ class SessionRecoveryFeature {
     }
 
     boolean isConnectionRecoveryPossible() {
-        return connectionRecoveryPossible;
+        return (connectionRecoveryPossible && unprocessedResponseCount.get() == 0);
     }
 
     void setConnectionRecoveryPossible(boolean connectionRecoveryPossible) {
@@ -117,10 +117,6 @@ class SessionRecoveryFeature {
                  */
                 setConnectionRecoveryPossible(false);
         }
-    }
-
-    int getUnprocessedResponseCount() {
-        return unprocessedResponseCount.get();
     }
 
     void setLoginParameters(String instanceValue, int nPort, FailoverInfo fo, int loginTimeoutSeconds) {
@@ -315,15 +311,6 @@ class SessionStateTable {
 
     void setSessionStateDelta(SessionStateValue[] sessionStateDelta) {
         this.sessionStateDelta = sessionStateDelta;
-    }
-
-    void resetDelta() {
-        for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
-            if (sessionStateDelta[i] != null && sessionStateDelta[i].getData() != null) {
-                sessionStateDelta[i] = null;
-            }
-        }
-        masterRecoveryDisabled = false;
     }
 
     String getOriginalCatalog() {

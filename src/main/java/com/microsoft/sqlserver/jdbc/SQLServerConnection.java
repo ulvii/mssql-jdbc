@@ -2978,7 +2978,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                      * TODO: add additional requirements for CR to be enabled such as unprocessed response count, is
                      * connection recoverable, is connection recovery turned on, etc...
                      */
-                    if (isConnectionDead()) {
+                    if (this.connectRetryCount > 0 && sessionRecovery.isConnectionRecoveryNegotiated()
+                            && sessionRecovery.isConnectionRecoveryPossible()
+                            && sessionRecovery.getSessionStateTable().isSessionRecoverable() && isConnectionDead()) {
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
                         }
