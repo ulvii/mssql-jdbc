@@ -28,9 +28,9 @@ final class TimeoutPoller implements Runnable {
                     // initialize the timeout poller thread once
                     timeoutPoller = new TimeoutPoller();
                     // start the timeout polling thread
-                    Thread t = new Thread(timeoutPoller, "mssql-jdbc-TimeoutPoller");
-                    t.setDaemon(true);
-                    t.start();
+                    Thread pollerThread = new Thread(timeoutPoller, "mssql-jdbc-TimeoutPoller");
+                    pollerThread.setDaemon(true);
+                    pollerThread.start();
                 }
             }
         }

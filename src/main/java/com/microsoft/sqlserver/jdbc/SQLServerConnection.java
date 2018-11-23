@@ -1248,6 +1248,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
         try {
             if (propsIn != null) {
+
                 activeConnectionProperties = (Properties) propsIn.clone();
 
                 pooledConnectionParent = pooledConnection;
@@ -1349,7 +1350,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 trustedServerNameAE = sPropValue;
 
-                if (true == serverNameAsACE) {
+                if (serverNameAsACE) {
                     try {
                         sPropValue = java.net.IDN.toASCII(sPropValue);
                     } catch (IllegalArgumentException ex) {
@@ -1557,8 +1558,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 authenticationString = SqlAuthentication.valueOfString(sPropValue).toString();
 
-                if ((true == integratedSecurity)
-                        && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))) {
+                if (integratedSecurity
+                        && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
                     if (connectionlogger.isLoggable(Level.SEVERE)) {
                         connectionlogger.severe(toString() + " "
                                 + SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"));
@@ -1620,7 +1621,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenCannotBeEmpty"), null);
                 }
 
-                if ((true == integratedSecurity) && (null != accessTokenInByte)) {
+                if (integratedSecurity && (null != accessTokenInByte)) {
                     if (connectionlogger.isLoggable(Level.SEVERE)) {
                         connectionlogger.severe(toString() + " "
                                 + SQLServerException.getErrString("R_SetAccesstokenWhenIntegratedSecurityTrue"));
@@ -2981,7 +2982,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
                         }
-                        sessionRecovery.getReconnectThread().init(newCommand);
                         sessionRecovery.getReconnectThread().start();
                         /*
                          * Join only blocks the thread that started the reconnect. Currently can't think of a good
@@ -3183,7 +3183,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @return the required syntax
      */
     static String sqlStatementToSetCommit(boolean autoCommit) {
-        return (true == autoCommit) ? "set implicit_transactions off " : "set implicit_transactions on ";
+        return autoCommit ? "set implicit_transactions off " : "set implicit_transactions on ";
     }
 
     @Override
@@ -3233,7 +3233,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // When changing to auto-commit from inside an existing transaction,
         // commit that transaction first.
-        if (newAutoCommitMode == true)
+        if (newAutoCommitMode)
             commitPendingTransaction = "IF @@TRANCOUNT > 0 COMMIT TRAN ";
 
         if (connectionlogger.isLoggable(Level.FINER)) {
@@ -3242,7 +3242,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         rolledBackTransaction = false;
-        connectionCommand(commitPendingTransaction + sqlStatementToSetCommit(newAutoCommitMode), "setAutoCommit");
+        connectionCommand(sqlStatementToSetCommit(newAutoCommitMode) + commitPendingTransaction, "setAutoCommit");
         databaseAutoCommitMode = newAutoCommitMode;
         loggerExternal.exiting(getClassNameLogging(), "setAutoCommit");
     }
@@ -3657,11 +3657,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // set upper 7 bits of options to indicate fed auth library type
             switch (fedAuthFeatureExtensionData.libraryType) {
                 case TDS.TDS_FEDAUTH_LIBRARY_ADAL:
-                    assert federatedAuthenticationInfoRequested == true;
+                    assert federatedAuthenticationInfoRequested;
                     options |= TDS.TDS_FEDAUTH_LIBRARY_ADAL << 1;
                     break;
                 case TDS.TDS_FEDAUTH_LIBRARY_SECURITYTOKEN:
-                    assert federatedAuthenticationRequested == true;
+                    assert federatedAuthenticationRequested;
                     options |= TDS.TDS_FEDAUTH_LIBRARY_SECURITYTOKEN << 1;
                     break;
                 default:
@@ -3669,7 +3669,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     break;
             }
 
-            options |= (byte) (fedAuthFeatureExtensionData.fedAuthRequiredPreLoginResponse == true ? 0x01 : 0x00);
+            options |= (byte) (fedAuthFeatureExtensionData.fedAuthRequiredPreLoginResponse ? 0x01 : 0x00);
 
             // write FeatureDataLen
             tdsWriter.writeInt(dataLen);
@@ -4661,7 +4661,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 byte enabled = data[1];
-                serverSupportsDataClassification = (enabled == 0) ? false : true;
+                serverSupportsDataClassification = enabled != 0;
             }
             case TDS.TDS_FEATURE_EXT_UTF8SUPPORT: {
                 if (connectionlogger.isLoggable(Level.FINER)) {
@@ -5183,7 +5183,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS,
                     SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin"));
         }
-
         if (connectRetryCount > 0 && !sessionRecovery.getReconnectThread().isAlive()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
@@ -5395,7 +5394,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     final private Savepoint setNamedSavepoint(String sName) throws SQLServerException {
-        if (true == databaseAutoCommitMode) {
+        if (databaseAutoCommitMode) {
             SQLServerException.makeFromDriverError(this, this, SQLServerException.getErrString("R_cantSetSavepoint"),
                     null, false);
         }
@@ -5446,7 +5445,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        if (true == databaseAutoCommitMode) {
+        if (databaseAutoCommitMode) {
             SQLServerException.makeFromDriverError(this, this, SQLServerException.getErrString("R_cantInvokeRollback"),
                     null, false);
         }
@@ -6406,7 +6405,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Base data type: int
                 final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
                 rs.next();
-                isAzureDW = (rs.getInt(1) == ENGINE_EDITION_FOR_SQL_AZURE_DW) ? true : false;
+                isAzureDW = rs.getInt(1) == ENGINE_EDITION_FOR_SQL_AZURE_DW;
             }
             return isAzureDW;
         } else {
