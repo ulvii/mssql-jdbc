@@ -395,22 +395,20 @@ final class ReconnectThread extends Thread {
 
         while ((connectRetryCount != 0) && (!stopRequested) && keepRetrying) {
             try {
-                System.out.println("Retrying");
                 eReceived = null;
                 con.connect(null, con.getPooledConnectionParent());
                 keepRetrying = false;
             } catch (SQLServerException e) {
                 if (!stopRequested) {
                     eReceived = e;
-                    System.out.println(e.getMessage());
                     if (con.isFatalError(e)) {
                         keepRetrying = false;
                     } else {
                         try {
                             if (connectRetryCount > 1)
                                 Thread.sleep(con.getRetryInterval() * 1000);
-                        } catch (InterruptedException e1) {
-                            this.eReceived = new SQLServerException(e1.getMessage(), null, DriverError.NOT_SET, null);
+                        } catch (InterruptedException ie) {
+                            this.eReceived = new SQLServerException(ie.getMessage(), null, DriverError.NOT_SET, null);
                             keepRetrying = false;
                         }
                     }

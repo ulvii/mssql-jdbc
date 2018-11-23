@@ -2982,6 +2982,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
                         }
+                        sessionRecovery.getReconnectThread().init(newCommand);
                         sessionRecovery.getReconnectThread().start();
                         /*
                          * Join only blocks the thread that started the reconnect. Currently can't think of a good
