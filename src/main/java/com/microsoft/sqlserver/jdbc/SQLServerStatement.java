@@ -222,7 +222,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             else
                 throw e;
         } finally {
-            if (newStmtCmd.wasExecuted)
+            if (newStmtCmd.wasExecuted())
                 lastStmtExecCmd = newStmtCmd;
         }
     }

@@ -7046,6 +7046,7 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
     }
 }
 
+
 /**
  * TDSCommand encapsulates an interruptable TDS conversation.
  *
@@ -7168,7 +7169,12 @@ abstract class TDSCommand {
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
     private TdsTimeoutCommand timeoutCommand;
+    /*
+     * Some flags for Connection Resiliency. We need to know if a command has already been registered in the poller, or
+     * if it was actually executed.
+     */
     private boolean registeredInPoller = false;
+    private boolean executed = false;
 
     protected int getQueryTimeoutSeconds() {
         return this.queryTimeoutSeconds;
@@ -7181,7 +7187,7 @@ abstract class TDSCommand {
     final boolean readingResponse() {
         return readingResponse;
     }
-    
+
     synchronized void addToPoller() {
         if (!registeredInPoller) {
             // If command execution is subject to timeout then start timing until
@@ -7192,6 +7198,10 @@ abstract class TDSCommand {
                 registeredInPoller = true;
             }
         }
+    }
+
+    boolean wasExecuted() {
+        return executed;
     }
 
     /**
@@ -7209,8 +7219,6 @@ abstract class TDSCommand {
         this.cancelQueryTimeoutSeconds = cancelQueryTimeoutSeconds;
     }
 
-    
-    boolean wasExecuted = false;
     /**
      * Executes this command.
      *
@@ -7221,7 +7229,7 @@ abstract class TDSCommand {
      */
 
     boolean execute(TDSWriter tdsWriter, TDSReader tdsReader) throws SQLServerException {
-        wasExecuted = true;
+        executed = true;
         this.tdsWriter = tdsWriter;
         this.tdsReader = tdsReader;
         assert null != tdsReader;

@@ -118,7 +118,7 @@ class SessionRecoveryFeature {
                 setConnectionRecoveryPossible(false);
         }
     }
-    
+
     int getUnprocessedResponseCount() {
         return unprocessedResponseCount.get();
     }
@@ -316,7 +316,7 @@ class SessionStateTable {
     void setSessionStateDelta(SessionStateValue[] sessionStateDelta) {
         this.sessionStateDelta = sessionStateDelta;
     }
-    
+
     void resetDelta() {
         for (int i = 0; i < SESSION_STATE_ID_MAX; i++) {
             if (sessionStateDelta[i] != null && sessionStateDelta[i].getData() != null) {
@@ -379,7 +379,7 @@ final class ReconnectThread extends Thread {
         this.con = sqlC;
     }
 
-    //Resets the thread
+    // Resets the thread
     void init(TDSCommand cmd) {
         this.command = cmd;
         connectRetryCount = con.getRetryCount();
@@ -418,7 +418,7 @@ final class ReconnectThread extends Thread {
                 try {
                     command.checkForInterrupt();
                 } catch (SQLServerException e) {
-                    //Interrupted, timeout occurred. Stop retrying.
+                    // Interrupted, timeout occurred. Stop retrying.
                     keepRetrying = false;
                     eReceived = e;
                 }
