@@ -67,7 +67,7 @@ class SessionRecoveryFeature {
     }
 
     boolean isConnectionRecoveryPossible() {
-        return (connectionRecoveryPossible && unprocessedResponseCount.get() == 0);
+        return connectionRecoveryPossible;
     }
 
     void setConnectionRecoveryPossible(boolean connectionRecoveryPossible) {
@@ -376,6 +376,11 @@ final class ReconnectThread extends Thread {
 
     public void run() {
         boolean interruptsEnabled = command.getInterruptsEnabled();
+        /*
+         * All TDSCommands are not interruptible before execution, and all the commands passed to here won't have been
+         * executed. We need to be able to interrupt these commands so the TimeoutPoller can tell us when a query has
+         * timed out.
+         */
         command.setInterruptsEnabled(true);
         command.addToPoller();
         boolean keepRetrying = true;
