@@ -3818,10 +3818,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // collation
                 if (databaseCollation != null && databaseCollation.isEqual(ssTable.getOriginalCollation())) {
                     tdsWriter.writeByte((byte) 0);
+                } else if (null == databaseCollation && sessionRecovery.getReconnectThread().isAlive()) {
+                    tdsWriter.writeByte((byte) SQLCollation.tdsLength());
+                    ssTable.getOriginalCollation().writeCollation(tdsWriter);
                 } else {
-                    if (databaseCollation == null) {
-                        System.out.println("COLLATION IS NULL");
-                    }
                     tdsWriter.writeByte((byte) SQLCollation.tdsLength());
                     databaseCollation.writeCollation(tdsWriter);
                 }
