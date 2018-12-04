@@ -3819,6 +3819,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (databaseCollation != null && databaseCollation.isEqual(ssTable.getOriginalCollation())) {
                     tdsWriter.writeByte((byte) 0);
                 } else {
+                    if (databaseCollation == null) {
+                        System.out.println("COLLATION IS NULL");
+                    }
                     tdsWriter.writeByte((byte) SQLCollation.tdsLength());
                     databaseCollation.writeCollation(tdsWriter);
                 }
@@ -3837,11 +3840,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (ssTable.getSessionStateDelta()[i] != null
                             && ssTable.getSessionStateDelta()[i].getData() != null) {
                         tdsWriter.writeByte((byte) i); // state id
-                        if (ssTable.getSessionStateDelta()[i].getDataLengh() >= 0xFF) {
+                        if (ssTable.getSessionStateDelta()[i].getDataLength() >= 0xFF) {
                             tdsWriter.writeByte((byte) 0xFF);
-                            tdsWriter.writeShort((short) ssTable.getSessionStateDelta()[i].getDataLengh());
+                            tdsWriter.writeShort((short) ssTable.getSessionStateDelta()[i].getDataLength());
                         } else
-                            tdsWriter.writeByte((byte) (ssTable.getSessionStateDelta()[i].getDataLengh()));
+                            tdsWriter.writeByte((byte) (ssTable.getSessionStateDelta()[i].getDataLength()));
                         tdsWriter.writeBytes(ssTable.getSessionStateDelta()[i].getData()); // state value
                     }
                 }
@@ -4563,9 +4566,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private void onFeatureExtAck(byte featureId, TDSReader tdsReader) throws SQLServerException {
-        if (null != routingInfo) {
+/*        if (null != routingInfo) {
             return;
-        }
+        }*/
 
         int dataLen;
         byte[] data = null;
