@@ -4566,10 +4566,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private void onFeatureExtAck(byte featureId, TDSReader tdsReader) throws SQLServerException {
-/*        if (null != routingInfo) {
-            return;
-        }*/
-
         int dataLen;
         byte[] data = null;
 
