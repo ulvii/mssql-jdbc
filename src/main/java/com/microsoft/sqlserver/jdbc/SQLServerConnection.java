@@ -2358,7 +2358,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     // excluding those changed due to routing ENVCHANGE token
     void resetNonRoutingEnvchangeValues() {
         tdsPacketSize = TDS.INITIAL_PACKET_SIZE;
-        databaseCollation = null;
+        if (!this.sessionRecovery.getReconnectThread().isAlive()) {
+            databaseCollation = null;
+        }
         rolledBackTransaction = false;
         Arrays.fill(getTransactionDescriptor(), (byte) 0);
         sCatalog = originalCatalog;
@@ -3818,9 +3820,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // collation
                 if (databaseCollation != null && databaseCollation.isEqual(ssTable.getOriginalCollation())) {
                     tdsWriter.writeByte((byte) 0);
-                } else if (null == databaseCollation && sessionRecovery.getReconnectThread().isAlive()) {
-                    tdsWriter.writeByte((byte) SQLCollation.tdsLength());
-                    ssTable.getOriginalCollation().writeCollation(tdsWriter);
                 } else {
                     tdsWriter.writeByte((byte) SQLCollation.tdsLength());
                     databaseCollation.writeCollation(tdsWriter);
