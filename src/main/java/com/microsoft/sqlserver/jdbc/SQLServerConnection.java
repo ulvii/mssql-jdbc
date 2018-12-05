@@ -2358,9 +2358,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     // excluding those changed due to routing ENVCHANGE token
     void resetNonRoutingEnvchangeValues() {
         tdsPacketSize = TDS.INITIAL_PACKET_SIZE;
-        if (!this.sessionRecovery.getReconnectThread().isAlive()) {
-            databaseCollation = null;
-        }
+        databaseCollation = null;
         rolledBackTransaction = false;
         Arrays.fill(getTransactionDescriptor(), (byte) 0);
         sCatalog = originalCatalog;
@@ -3756,8 +3754,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     + (ssTable.getOriginalCollation() != null ? SQLCollation.tdsLength() : 0) + 1
                     + toUCS16(ssTable.getOriginalLanguage()).length + ssTable.getInitialLength() + 4 + 1
                     + (sCatalog.equals(ssTable.getOriginalCatalog()) ? 0 : sCatalog.length()) + 1
-                    + (databaseCollation != null
-                            && databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0 : SQLCollation.tdsLength())
+                    + (databaseCollation == null
+                            || databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0 : SQLCollation.tdsLength())
                     + 1 // 1 byte of current language length
                     + (sLanguage.equals(ssTable.getOriginalLanguage()) ? 0 : sLanguage.length())
                     + ssTable.getDeltaLength();
@@ -3802,8 +3800,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // delta data
                 tdsWriter.writeInt((int) (1// 1 byte of current database length
                         + (sCatalog.equals(ssTable.getOriginalCatalog()) ? 0 : sCatalog.length()) + 1
-                        + (databaseCollation != null
-                                && databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0
+                        + (databaseCollation == null
+                                || databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0
                                                                                              : SQLCollation.tdsLength())
                         + 1 // 1 byte of current language length
                         + (sLanguage.equals(ssTable.getOriginalLanguage()) ? 0 : sLanguage.length())
@@ -3818,7 +3816,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 // collation
-                if (databaseCollation != null && databaseCollation.isEqual(ssTable.getOriginalCollation())) {
+                if (databaseCollation == null || databaseCollation.isEqual(ssTable.getOriginalCollation())) {
                     tdsWriter.writeByte((byte) 0);
                 } else {
                     tdsWriter.writeByte((byte) SQLCollation.tdsLength());
