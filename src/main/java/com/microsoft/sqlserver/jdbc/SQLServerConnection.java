@@ -2335,7 +2335,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if ((SQLServerException.LOGON_FAILED == e.getErrorCode())
                 // actual logon failed (e.g. password expired)
                 || (SQLServerException.PASSWORD_EXPIRED == e.getErrorCode())
-                // actual logon failed  (e.g. user account locked)
+                // actual logon failed (e.g. user account locked)
                 || (SQLServerException.USER_ACCOUNT_LOCKED == e.getErrorCode())
                 // invalid TDS received from server
                 || (SQLServerException.DRIVER_ERROR_INVALID_TDS == e.getDriverErrorCode())
