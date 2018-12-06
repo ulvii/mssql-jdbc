@@ -3755,7 +3755,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             int initialLength = 0;
             initialLength += 1 + 2 * ssTable.getOriginalCatalog().length();
             initialLength += 1 + 2 * ssTable.getOriginalLanguage().length();
-            initialLength += 1 + (databaseCollation == null ? 0 : SQLCollation.tdsLength());
+            initialLength += 1 + (ssTable.getOriginalCollation() == null ? 0 : SQLCollation.tdsLength());
             initialLength += ssTable.getInitialLength();
 
             int currentLength = 0;
