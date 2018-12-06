@@ -38,21 +38,22 @@ public class BasicConnectionTest extends AbstractTest {
                 s.executeQuery("SELECT 1");
                 fail("Query execution did not throw an exception on a closed execution");
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains("the connection is closed."));
+                assertTrue(e.getMessage().contains("The connection is closed."));
             }
         }
     }
 
     @Test
     public void testCatalog() throws SQLException {
-        String databaseName = null;
+        String expectedDatabaseName = null;
+        String actualDatabaseName = null;
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {
             try {
-                databaseName = RandomUtil.getIdentifier("resDB");
-                TestUtils.dropDatabaseIfExists(databaseName, s);
-                s.execute("CREATE DATABASE " + databaseName);
+                expectedDatabaseName = RandomUtil.getIdentifier("resDB");
+                TestUtils.dropDatabaseIfExists(expectedDatabaseName, s);
+                s.execute("CREATE DATABASE [" + expectedDatabaseName + "]");
                 try {
-                    c.setCatalog(databaseName);
+                    c.setCatalog(expectedDatabaseName);
                 } catch (SQLException e) {
                     // Switching databases is not supported against Azure, skip/
                     return;
@@ -60,12 +61,14 @@ public class BasicConnectionTest extends AbstractTest {
                 ResiliencyUtils.killConnection(c, connectionString);
                 try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                     while (rs.next()) {
-                        // Check if the driver reconnected to the expected database. 
-                        assertEquals(databaseName, rs.getString(1));
+                        actualDatabaseName = rs.getString(1);
                     }
                 }
-            } finally {
-                TestUtils.dropDatabaseIfExists(databaseName, s);
+                // Check if the driver reconnected to the expected database. 
+                assertEquals(expectedDatabaseName, actualDatabaseName);
+            }
+            finally {
+                TestUtils.dropDatabaseIfExists(expectedDatabaseName, s);
             }
         }
     }

@@ -19,16 +19,17 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 public class ResultSetsWithResiliencyTest extends AbstractTest {
-    static String tableName = RandomUtil.getIdentifier("resTable");
-    static int numberOfRows = 100;
+    static String tableName = "[" + RandomUtil.getIdentifier("resTable") + "]";
+    static int numberOfRows = 10000;
 
     @BeforeAll
-    public void setUp() throws SQLException {
+    public static void setUp() throws SQLException {
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement();) {
             TestUtils.dropTableIfExists(tableName, s);
             createTable(s);
@@ -74,14 +75,17 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     @Test
     public void testFullBufferingWithPartiallyParsedResultSet() throws SQLException {
         try (Connection c = DriverManager.getConnection(connectionString + ";responseBuffering=full");
-                Statement s = c.createStatement();
+                Statement s = c.createStatement(); Statement s2 = c.createStatement();
                 ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
             // Partially parsed
             rs.next();
             rs.getString(2);
+            ResiliencyUtils.killConnection(c, connectionString);
             // ResulSet is not completely parsed, connection recovery is disabled.
-            s.execute("SELECT 1");
+            s2.execute("SELECT 1");
             fail();
+        } catch (SQLServerException e) {
+            assertEquals("08S01", e.getSQLState());
         }
     }
 
@@ -92,21 +96,24 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     public void testAdaptiveBufferingWithPartiallyBufferedResultSet() throws SQLException {
         // The table must contain enough rows to partially buffer the result set.
         try (Connection c = DriverManager.getConnection(connectionString + ";responseBuffering=adaptive");
-                Statement s = c.createStatement();
+                Statement s = c.createStatement(); Statement s2 = c.createStatement();
                 ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
+            ResiliencyUtils.killConnection(c, connectionString);
             // ResulSet is partially buffered, connection recovery is disabled.
-            s.execute("SELECT 1");
+            s2.execute("SELECT 1");
             fail();
+        } catch (SQLServerException e) {
+            assertEquals("08S01", e.getSQLState());
         }
     }
 
-    private void createTable(Statement s) throws SQLException {
-        s.execute("CREATE TABLE " + tableName + " (id I AUTO_INCREMENT, data varchar(50));");
+    private static void createTable(Statement s) throws SQLException {
+        s.execute("CREATE TABLE " + tableName + " (id int IDENTITY, data varchar(50));");
     }
 
-    private void insertData(Statement s) throws SQLException {
+    private static void insertData(Statement s) throws SQLException {
         for (int i = 1; i <= numberOfRows; i++) {
-            s.executeUpdate("INSERT INTO " + tableName + " VALUES ('testData" + i + ");");
+            s.executeUpdate("INSERT INTO " + tableName + " VALUES ('testData" + i + "');");
         }
     }
 
@@ -117,8 +124,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             if (!("testData" + count).equals(rs.getString(2))) {
                 fail();
             }
-            assertEquals(numberOfRows, count);
         }
+        assertEquals(numberOfRows, count);
     }
 
     private void verifyResulSetResponseBuffering(String responseBuffering,
@@ -137,7 +144,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     }
 
     @AfterAll
-    public void cleanUp() throws SQLException {
+    public static void cleanUp() throws SQLException {
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {
             TestUtils.dropTableIfExists(tableName, s);
         }
