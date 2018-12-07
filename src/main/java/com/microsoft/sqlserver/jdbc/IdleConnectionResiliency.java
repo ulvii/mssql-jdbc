@@ -401,8 +401,10 @@ final class ReconnectThread extends Thread {
                         keepRetrying = false;
                     } else {
                         try {
-                            if (connectRetryCount > 1)
+                            if (connectRetryCount > 1) {
+                                System.out.println("Sleeping for: " + con.getRetryInterval());
                                 Thread.sleep(con.getRetryInterval() * 1000);
+                            }
                         } catch (InterruptedException ie) {
                             this.eReceived = new SQLServerException(ie.getMessage(), null, DriverError.NOT_SET, null);
                             keepRetrying = false;

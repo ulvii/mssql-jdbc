@@ -21,6 +21,10 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -665,5 +669,21 @@ public class TestUtils {
      */
     public static String escapeSingleQuotes(String name) {
         return name.replace("'", "''");
+    }
+
+    public static final ResourceBundle rb = getRootBundle();
+    /**
+     * Returns the root bundle. This is the bundle from SQLServerResource.java - the English version that gets updated
+     * in development process.
+     *
+     * @return root bundle.
+     */
+    private static ResourceBundle getRootBundle() {
+        return ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource", new ResourceBundle.Control() {
+            @Override
+            public List<Locale> getCandidateLocales(String name, Locale locale) {
+                return Collections.singletonList(Locale.ROOT);
+            }
+        });
     }
 }

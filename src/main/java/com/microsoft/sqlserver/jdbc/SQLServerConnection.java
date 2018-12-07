@@ -1967,7 +1967,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     mirror = failOverPartnerPropertyValue;
 
                 long startTime = System.currentTimeMillis();
-                sessionRecovery.setLoginParameters(instanceValue, nPort, fo, loginTimeoutSeconds);
+                sessionRecovery.setLoginParameters(instanceValue, nPort, fo,
+                        ((loginTimeoutSeconds > queryTimeoutSeconds) && queryTimeoutSeconds > 0) ? queryTimeoutSeconds : loginTimeoutSeconds);
                 login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo,
                         loginTimeoutSeconds, startTime);
             } else {
@@ -2195,7 +2196,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } else
                     break; // leave the while loop -- we've successfully connected
             } catch (SQLServerException sqlex) {
-                if (isFatalError(sqlex)) {
+                if (isFatalError(sqlex) || timerHasExpired(timerExpire)) {
                     // close the connection and throw the error back
                     close();
                     throw sqlex;
@@ -2346,7 +2347,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // unsupported configuration (e.g. Sphinx, invalid packet size, etc.)
                 || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == e.getDriverErrorCode())
                 // no more time to try again
-                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode()) || timerHasExpired(timerExpire)
+                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode())
                 // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
                 || (state.equals(State.Connected) && !isDBMirroring))
             return true;
@@ -2409,8 +2410,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     static boolean timerHasExpired(long timerExpire) {
-        boolean result = System.currentTimeMillis() > timerExpire;
-        return result;
+        return System.currentTimeMillis() > timerExpire;
     }
 
     static int TimerRemaining(long timerExpire) {
