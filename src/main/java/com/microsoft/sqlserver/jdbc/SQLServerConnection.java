@@ -923,8 +923,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private int holdability;
 
-    private boolean isDBMirroring = false;
-
     final int getHoldabilityInternal() {
         return holdability;
     }
@@ -2027,7 +2025,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
-        isDBMirroring = null != mirror || null != foActual;
+        boolean isDBMirroring = null != mirror || null != foActual;
         int sleepInterval = 100; // milliseconds to sleep (back off) between attempts.
         long timeoutUnitInterval;
 
@@ -2197,7 +2195,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } else
                     break; // leave the while loop -- we've successfully connected
             } catch (SQLServerException sqlex) {
-                if (isFatalError(sqlex) || timerHasExpired(timerExpire)) {
+                // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
+                if (isFatalError(sqlex) || timerHasExpired(timerExpire)
+                        || (state.equals(State.Connected) && !isDBMirroring)) {
                     // close the connection and throw the error back
                     close();
                     throw sqlex;
@@ -2348,9 +2348,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // unsupported configuration (e.g. Sphinx, invalid packet size, etc.)
                 || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == e.getDriverErrorCode())
                 // no more time to try again
-                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode())
-                // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
-                || (state.equals(State.Connected) && !isDBMirroring))
+                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode()))
             return true;
         else
             return false;
