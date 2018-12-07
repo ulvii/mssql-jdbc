@@ -7647,7 +7647,7 @@ abstract class TDSCommand {
         return tdsReader;
     }
 
-    void attachThread(ReconnectThread reconnectThread) {
+    void attachThread(Thread reconnectThread) {
         this.correspondingThread  = reconnectThread;
     }
 }
