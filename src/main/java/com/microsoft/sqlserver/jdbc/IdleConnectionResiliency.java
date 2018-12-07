@@ -386,6 +386,7 @@ final class ReconnectThread extends Thread {
          * timed out.
          */
         command.setInterruptsEnabled(true);
+        command.attachThread(this);
         command.addToPoller();
         boolean keepRetrying = true;
 
@@ -402,20 +403,11 @@ final class ReconnectThread extends Thread {
                     } else {
                         try {
                             if (connectRetryCount > 1) {
-                                for (int i = 0; i < con.getRetryInterval(); i++) {
-                                    try {
-                                        Thread.sleep(1000);
-                                        command.checkForInterrupt();
-                                    } catch (SQLServerException sqlE) {
-                                        // Interrupted, timeout occurred. Stop retrying.
-                                        keepRetrying = false;
-                                        eReceived = sqlE;
-                                        break;
-                                    }
-                                }
+                                Thread.sleep(con.getRetryInterval() * 1000);
                             }
                         } catch (InterruptedException ie) {
-                            this.eReceived = new SQLServerException(ie.getMessage(), null, DriverError.NOT_SET, null);
+                            this.eReceived = new SQLServerException(ie.getMessage(), SQLState.STATEMENT_CANCELED,
+                                    DriverError.NOT_SET, null);
                             keepRetrying = false;
                         }
                     }

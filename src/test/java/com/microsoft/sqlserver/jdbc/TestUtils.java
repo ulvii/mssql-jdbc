@@ -671,24 +671,19 @@ public class TestUtils {
         return name.replace("'", "''");
     }
 
-    public static final ResourceBundle rb = getRootBundle();
+    public static final ResourceBundle rBundle = getDefaultLocaleBundle();
     /**
      * Returns the root bundle. This is the bundle from SQLServerResource.java - the English version that gets updated
      * in development process.
      *
      * @return root bundle.
      */
-    private static ResourceBundle getRootBundle() {
-        return ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource", new ResourceBundle.Control() {
-            @Override
-            public List<Locale> getCandidateLocales(String name, Locale locale) {
-                return Collections.singletonList(Locale.ROOT);
-            }
-        });
+    private static ResourceBundle getDefaultLocaleBundle() {
+        return ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource", Locale.getDefault());
     }
     
     public static String formatErrorMsg(String s) {
         //Creates a regex where all '{#}' fields will return true for any value when calling match()
-        return ("\\Q" + TestUtils.rb.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
+        return ("\\Q" + TestUtils.rBundle.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
 }

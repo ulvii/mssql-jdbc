@@ -87,10 +87,10 @@ public class ReflectiveTests extends AbstractTest {
     @Test
     public void testQueryTimeout() throws SQLException {
         Map<String, String> m = new HashMap<>();
-        m.put("queryTimeout", "5");
+        m.put("queryTimeout", "10");
         m.put("loginTimeout", "65535");
         m.put("connectRetryCount", "1");
-        timeoutVariations(m, 10000, Optional.empty());
+        timeoutVariations(m, 12000, Optional.empty());
     }
 
     /*
