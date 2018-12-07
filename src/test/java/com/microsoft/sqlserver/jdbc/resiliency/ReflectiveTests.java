@@ -35,7 +35,6 @@ public class ReflectiveTests extends AbstractTest {
                 s.executeQuery("SELECT 1");
                 fail("Successfully executed query on a blocked connection.");
             } catch (SQLException e) {
-                System.out.println(e.getMessage());
                 double elapsedTime = (System.currentTimeMillis() - startTime)/1000;
                 //Default attempt interval is 10 seconds, and login timeout is 5
                 assertTrue("Elapsed Time out of Range: " + elapsedTime, elapsedTime > 20 && elapsedTime < 25);

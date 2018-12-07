@@ -402,7 +402,6 @@ final class ReconnectThread extends Thread {
                     } else {
                         try {
                             if (connectRetryCount > 1) {
-                                System.out.println("Sleeping for: " + con.getRetryInterval());
                                 Thread.sleep(con.getRetryInterval() * 1000);
                             }
                         } catch (InterruptedException ie) {
