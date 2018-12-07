@@ -18,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -685,5 +686,11 @@ public class TestUtils {
                 return Collections.singletonList(Locale.ROOT);
             }
         });
+    }
+    
+    public static String formatErrorMsg(String s) {
+        String errMsg = rb.getString(s); 
+        //Creates a regex where all '{#}' fields will return true for any value when calling match()
+        return ("\\Q" + TestUtils.rb.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
 }

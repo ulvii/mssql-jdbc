@@ -1968,7 +1968,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 long startTime = System.currentTimeMillis();
                 sessionRecovery.setLoginParameters(instanceValue, nPort, fo,
-                        ((loginTimeoutSeconds > queryTimeoutSeconds) && queryTimeoutSeconds > 0) ? queryTimeoutSeconds : loginTimeoutSeconds);
+                        ((loginTimeoutSeconds > queryTimeoutSeconds) && queryTimeoutSeconds > 0) ? queryTimeoutSeconds
+                                                                                                 : loginTimeoutSeconds);
                 login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo,
                         loginTimeoutSeconds, startTime);
             } else {

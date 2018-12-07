@@ -39,10 +39,6 @@ public class PropertyTest extends AbstractTest {
         }
     }
 
-    private String formatErrorMsg(String s) {
-        return ("\\Q" + TestUtils.rb.getString(s) + "\\E").replace("{0}", "\\E.*\\Q");
-    }
-
     @Test
     public void testRetryCount() throws SQLException {
         // fail immediately without retrying
@@ -50,22 +46,24 @@ public class PropertyTest extends AbstractTest {
         // Out of range, < 0
         testInvalidPropertyOverBrokenConnection("connectRetryCount",
                 String.valueOf(ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, 0)),
-                formatErrorMsg("R_invalidConnectRetryCount"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryCount"));
         // Out of range, > 255
         testInvalidPropertyOverBrokenConnection("connectRetryCount",
                 String.valueOf(ThreadLocalRandom.current().nextInt(256, Integer.MAX_VALUE)),
-                formatErrorMsg("R_invalidConnectRetryCount"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryCount"));
         // non-Integer types: boolean, float, double, string
         testInvalidPropertyOverBrokenConnection("connectRetryCount",
                 String.valueOf(ThreadLocalRandom.current().nextBoolean()),
-                formatErrorMsg("R_invalidConnectRetryCount"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryCount"));
         testInvalidPropertyOverBrokenConnection("connectRetryCount",
-                String.valueOf(ThreadLocalRandom.current().nextFloat()), formatErrorMsg("R_invalidConnectRetryCount"));
+                String.valueOf(ThreadLocalRandom.current().nextFloat()),
+                TestUtils.formatErrorMsg("R_invalidConnectRetryCount"));
         testInvalidPropertyOverBrokenConnection("connectRetryCount",
-                String.valueOf(ThreadLocalRandom.current().nextDouble()), formatErrorMsg("R_invalidConnectRetryCount"));
+                String.valueOf(ThreadLocalRandom.current().nextDouble()),
+                TestUtils.formatErrorMsg("R_invalidConnectRetryCount"));
         testInvalidPropertyOverBrokenConnection("connectRetryCount",
                 ResiliencyUtils.getRandomString(ResiliencyUtils.alpha, 15),
-                formatErrorMsg("R_invalidConnectRetryCount"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryCount"));
     }
 
     @Test
@@ -73,23 +71,23 @@ public class PropertyTest extends AbstractTest {
         // Out of range, < 1
         testInvalidPropertyOverBrokenConnection("connectRetryInterval",
                 String.valueOf(ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, 1)),
-                formatErrorMsg("R_invalidConnectRetryInterval"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryInterval"));
         // Out of range, > 60
         testInvalidPropertyOverBrokenConnection("connectRetryInterval",
                 String.valueOf(ThreadLocalRandom.current().nextInt(61, Integer.MAX_VALUE)),
-                formatErrorMsg("R_invalidConnectRetryInterval"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryInterval"));
         // non-Integer types: boolean, float, double, string
         testInvalidPropertyOverBrokenConnection("connectRetryInterval",
                 String.valueOf(ThreadLocalRandom.current().nextBoolean()),
-                formatErrorMsg("R_invalidConnectRetryInterval"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryInterval"));
         testInvalidPropertyOverBrokenConnection("connectRetryInterval",
                 String.valueOf(ThreadLocalRandom.current().nextFloat()),
-                formatErrorMsg("R_invalidConnectRetryInterval"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryInterval"));
         testInvalidPropertyOverBrokenConnection("connectRetryInterval",
                 String.valueOf(ThreadLocalRandom.current().nextDouble()),
-                formatErrorMsg("R_invalidConnectRetryInterval"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryInterval"));
         testInvalidPropertyOverBrokenConnection("connectRetryInterval",
                 ResiliencyUtils.getRandomString(ResiliencyUtils.alpha, 15),
-                formatErrorMsg("R_invalidConnectRetryInterval"));
+                TestUtils.formatErrorMsg("R_invalidConnectRetryInterval"));
     }
 }
