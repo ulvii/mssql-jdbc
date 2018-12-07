@@ -43,7 +43,7 @@ public class ReflectiveTests extends AbstractTest {
             } catch (SQLException e) {
                 double elapsedTime = (System.currentTimeMillis() - startTime);
                 // Default attempt interval is 10 seconds, and login timeout is 5
-                assertTrue("Elapsed Time out of Range: " + elapsedTime, elapsedTime > 20000 && elapsedTime < 22000);
+                assertTrue("Elapsed Time out of Range: " + elapsedTime, elapsedTime > 20000 && elapsedTime < 25000);
             }
         }
     }
@@ -116,7 +116,7 @@ public class ReflectiveTests extends AbstractTest {
             } catch (SQLException e) {
                 double elapsedTime = System.currentTimeMillis() - startTime;
                 // Timeout should occur after query timeout and not login timeout
-                assertTrue("Query did not timeout in time, elapsed time(ms): " + elapsedTime, elapsedTime < 6000);
+                assertTrue("Query did not timeout in time, elapsed time(ms): " + elapsedTime, elapsedTime < 10000);
             }
         }
     }

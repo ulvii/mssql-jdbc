@@ -402,7 +402,17 @@ final class ReconnectThread extends Thread {
                     } else {
                         try {
                             if (connectRetryCount > 1) {
-                                Thread.sleep(con.getRetryInterval() * 1000);
+                                for (int i = 0; i < con.getRetryInterval(); i++) {
+                                    try {
+                                        Thread.sleep(1000);
+                                        command.checkForInterrupt();
+                                    } catch (SQLServerException sqlE) {
+                                        // Interrupted, timeout occurred. Stop retrying.
+                                        keepRetrying = false;
+                                        eReceived = sqlE;
+                                        break;
+                                    }
+                                }
                             }
                         } catch (InterruptedException ie) {
                             this.eReceived = new SQLServerException(ie.getMessage(), null, DriverError.NOT_SET, null);
