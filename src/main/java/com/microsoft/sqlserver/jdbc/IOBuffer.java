@@ -7647,6 +7647,11 @@ abstract class TDSCommand {
         return tdsReader;
     }
 
+    /*
+     * Currently only used in Connection Resiliency scenarios. This thread reference
+     * allows the current command to interrupt the thread if it's sleeping. This is useful
+     * in timeout cases.
+     */
     void attachThread(Thread reconnectThread) {
         this.correspondingThread  = reconnectThread;
     }
