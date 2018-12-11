@@ -198,7 +198,7 @@ public final class ResiliencyUtils {
                 Properties connectionProps;
                 try {
                     connectionProps = (Properties) f.get(c);
-                    connectionProps.setProperty("serverName", "BOGUS-SERVER-NAME");
+                    connectionProps.setProperty("serverName", "bogusServerName");
                     f.set(c, connectionProps);
                     return;
                 } catch (IllegalArgumentException | IllegalAccessException e) {
@@ -236,11 +236,11 @@ public final class ResiliencyUtils {
     }
 
     public static String getRandomString(String pool, int length) {
-        String s = "";
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
-            s.concat(String.valueOf(pool.charAt(getRandomInt(0, pool.length()))));
+            sb.append(String.valueOf(pool.charAt(getRandomInt(0, pool.length()))));
         }
-        return s;
+        return sb.toString();
     }
     
     public static String setConnectionProps(String base, Map<String,String> props) {
