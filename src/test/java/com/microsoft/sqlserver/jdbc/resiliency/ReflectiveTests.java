@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import static org.junit.Assert.assertTrue;
@@ -21,7 +26,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 public class ReflectiveTests extends AbstractTest {
-    
+
     private void timeoutVariations(Map<String, String> props, long expectedDuration,
             Optional<String> expectedErrMsg) throws SQLException {
         long startTime = 0;
