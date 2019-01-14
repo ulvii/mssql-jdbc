@@ -150,8 +150,8 @@ final class Util {
     }
 
     static int readIntBigEndian(byte data[], int nOffset) {
-        return ((data[nOffset + 3] & 0xFF) << 0) | ((data[nOffset + 2] & 0xFF) << 8)
-                | ((data[nOffset + 1] & 0xFF) << 16) | ((data[nOffset + 0] & 0xFF) << 24);
+        return ((data[nOffset + 3] & 0xFF) << 0) | ((data[nOffset + 2] & 0xFF) << 8) | ((data[nOffset + 1] & 0xFF) << 16)
+                | ((data[nOffset + 0] & 0xFF) << 24);
     }
 
     static void writeInt(int value, byte valueBytes[], int offset) {
@@ -823,13 +823,13 @@ final class Util {
 
         switch (jdbcType) {
             case MONEY:
-                if ((1 != bd.compareTo(SSType.MAX_VALUE_MONEY)) && (-1 != bd.compareTo(SSType.MIN_VALUE_MONEY))) {
+                if ((bd.compareTo(SSType.MAX_VALUE_MONEY) <= 0) && (bd.compareTo(SSType.MIN_VALUE_MONEY) >= 0)) {
                     return;
                 }
                 break;
             case SMALLMONEY:
-                if ((1 != bd.compareTo(SSType.MAX_VALUE_SMALLMONEY))
-                        && (-1 != bd.compareTo(SSType.MIN_VALUE_SMALLMONEY))) {
+                if ((bd.compareTo(SSType.MAX_VALUE_SMALLMONEY) <= 0)
+                        && (bd.compareTo(SSType.MIN_VALUE_SMALLMONEY) >= 0)) {
                     return;
                 }
                 break;
@@ -936,8 +936,7 @@ final class Util {
     // If the token is expiring within the next 45 mins, try to fetch a new token if there is no thread already doing
     // it.
     // If a thread is already doing the refresh, just use the existing token and proceed.
-    static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection) {
-        Date accessTokenExpireDate = connection.getAuthenticationResult().getExpiresOnDate();
+    static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection, Date accessTokenExpireDate) {
         Date now = new Date();
 
         // if the token's expiration is within the next 45 mins
@@ -957,7 +956,6 @@ final class Util {
                 }
             }
         }
-
         return false;
     }
 

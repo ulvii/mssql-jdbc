@@ -863,21 +863,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         CekTableEntry cekEntry = null;
         try {
             while (rs.next()) {
-                int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
+                int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KEYORDINAL.value());
                 if (!cekList.containsKey(currentOrdinal)) {
                     cekEntry = new CekTableEntry(currentOrdinal);
                     cekList.put(cekEntry.ordinal, cekEntry);
                 } else {
                     cekEntry = cekList.get(currentOrdinal);
                 }
-                cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
-                        rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
-                        rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                        rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
+                cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.ENCRYPTEDKEY.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.DBID.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KEYID.value()),
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KEYVERSION.value()),
+                        rs.getBytes(DescribeParameterEncryptionResultSet1.KEYMDVERSION.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.KEYPATH.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.PROVIDERNAME.value()),
+                        rs.getString(DescribeParameterEncryptionResultSet1.KEYENCRYPTIONALGORITHM.value()));
             }
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                 getStatementLogger().fine("Matadata of CEKs is retrieved.");
@@ -903,9 +903,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             rs = (SQLServerResultSet) stmt.getResultSet();
             while (rs.next()) {
                 paramCount++;
-                String paramName = rs.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
+                String paramName = rs.getString(DescribeParameterEncryptionResultSet2.PARAMETERNAME.value());
                 int paramIndex = parameterNames.indexOf(paramName);
-                int cekOrdinal = rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
+                int cekOrdinal = rs.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCXRYPTIONKEYORDINAL.value());
                 cekEntry = cekList.get(cekOrdinal);
 
                 // cekEntry will be null if none of the parameters are encrypted.
@@ -916,12 +916,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
                 SQLServerEncryptionType encType = SQLServerEncryptionType
-                        .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
+                        .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
                 if (SQLServerEncryptionType.PlainText != encType) {
                     params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
-                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
                             null, encType.value,
-                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+                            (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NORMALIZATIONRULEVERSION.value()));
                     // Decrypt the symmetric key.(This will also validate and throw if needed).
                     SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
                 } else {
@@ -1936,6 +1936,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         try {
             if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
+                if (null == batchParamValues) {
+                    updateCounts = new int[0];
+                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                    return updateCounts;
+                }
+
                 // From the JDBC spec, section 9.1.4 - Making Batch Updates:
                 // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
                 // throw a BatchUpdateException if the stored procedure returns anything other than an
@@ -1953,12 +1959,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
-                }
-
-                if (batchParamValues == null) {
-                    updateCounts = new int[0];
-                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
-                    return updateCounts;
                 }
 
                 String tableName = parseUserSQLForTableNameDW(false, false, false, false);
@@ -2032,7 +2032,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        if (batchParamValues == null)
+        if (null == batchParamValues)
             updateCounts = new int[0];
         else
             try {
@@ -2093,6 +2093,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         try {
             if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
+                if (null == batchParamValues) {
+                    updateCounts = new long[0];
+                    loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
+                    return updateCounts;
+                }
+
                 // From the JDBC spec, section 9.1.4 - Making Batch Updates:
                 // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
                 // throw a BatchUpdateException if the stored procedure returns anything other than an
@@ -2110,12 +2116,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
                         }
                     }
-                }
-
-                if (batchParamValues == null) {
-                    updateCounts = new long[0];
-                    loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
-                    return updateCounts;
                 }
 
                 String tableName = parseUserSQLForTableNameDW(false, false, false, false);
@@ -2189,7 +2189,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        if (batchParamValues == null)
+        if (null == batchParamValues)
             updateCounts = new long[0];
         else
             try {
@@ -2234,8 +2234,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void checkValidColumns(TypeInfo ti) throws SQLServerException {
         int jdbctype = ti.getSSType().getJDBCType().getIntValue();
-        // currently, we do not support: geometry, geography, datetime and smalldatetime
+        String typeName;
+        MessageFormat form;
         switch (jdbctype) {
+            case microsoft.sql.Types.MONEY:
+            case microsoft.sql.Types.SMALLMONEY:
+            case java.sql.Types.DATE:
+            case microsoft.sql.Types.DATETIME:
+            case microsoft.sql.Types.DATETIMEOFFSET:
+            case microsoft.sql.Types.SMALLDATETIME:
+            case java.sql.Types.TIME:
+                typeName = ti.getSSTypeName();
+                form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupportedDW"));
+                throw new IllegalArgumentException(form.format(new Object[] {typeName}));
             case java.sql.Types.INTEGER:
             case java.sql.Types.SMALLINT:
             case java.sql.Types.BIGINT:
@@ -2243,8 +2254,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             case java.sql.Types.TINYINT:
             case java.sql.Types.DOUBLE:
             case java.sql.Types.REAL:
-            case microsoft.sql.Types.MONEY:
-            case microsoft.sql.Types.SMALLMONEY:
             case java.sql.Types.DECIMAL:
             case java.sql.Types.NUMERIC:
             case microsoft.sql.Types.GUID:
@@ -2258,21 +2267,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             case java.sql.Types.LONGVARBINARY:
             case java.sql.Types.VARBINARY:
                 // Spatial datatypes fall under Varbinary, check if the UDT is geometry/geography.
-                String typeName = ti.getSSTypeName();
+                typeName = ti.getSSTypeName();
                 if (typeName.equalsIgnoreCase("geometry") || typeName.equalsIgnoreCase("geography")) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
+                    form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                     throw new IllegalArgumentException(form.format(new Object[] {typeName}));
                 }
             case java.sql.Types.TIMESTAMP:
-            case java.sql.Types.DATE:
-            case java.sql.Types.TIME:
             case 2013: // java.sql.Types.TIME_WITH_TIMEZONE
             case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
-            case microsoft.sql.Types.DATETIMEOFFSET:
             case microsoft.sql.Types.SQL_VARIANT:
                 return;
             default: {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
+                form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 String unsupportedDataType = JDBCType.of(jdbctype).toString();
                 throw new IllegalArgumentException(form.format(new Object[] {unsupportedDataType}));
             }
