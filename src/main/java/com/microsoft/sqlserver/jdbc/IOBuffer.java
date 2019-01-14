@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -549,7 +550,12 @@ final class UTC {
 }
 
 
-final class TDSChannel {
+final class TDSChannel implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -866497813437384090L;
+
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
 
     final Logger getLogger() {
@@ -584,6 +590,7 @@ final class TDSChannel {
      * Socket providing the communications interface to the driver. For SSL-encrypted connections, this is the SSLSocket
      * wrapped around the TCP socket. For unencrypted connections, it is just the TCP socket itself.
      */
+    @SuppressWarnings("unused")
     private Socket channelSocket;
 
     /*
@@ -2618,6 +2625,7 @@ final class SocketFinder {
                 sChannel.configureBlocking(false);
 
                 // register the channel for connect event
+                @SuppressWarnings("unused")
                 int ops = SelectionKey.OP_CONNECT;
 
                 sChannel.connect(new InetSocketAddress(inetAddr, portNumber));
@@ -4266,11 +4274,11 @@ final class TDSWriter {
                                                                                                       // length is 16
                                                                                                       // bits,
         stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-                                                                                                   // ENDIAN
+        // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
                                                                                                 // bits,
         stagingBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-                                                                                             // ENDIAN
+        // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
         stagingBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used)
 
@@ -4282,11 +4290,11 @@ final class TDSWriter {
                                                                                                       // length is 16
                                                                                                       // bits,
             logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-                                                                                                   // ENDIAN
+            // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
                                                                                                 // bits,
             logBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-                                                                                             // ENDIAN
+            // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
             logBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used);
         }
@@ -6450,7 +6458,13 @@ final class TDSReaderMark {
  *
  * Bytes are read from SQL Server into a FIFO of packets. Reader methods traverse the packets to access the data.
  */
-final class TDSReader {
+final class TDSReader implements Serializable {
+
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -392905303734809731L;
+
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Reader");
     final private String traceID;
     private ScheduledFuture<?> timeout;
@@ -7269,7 +7283,12 @@ final class TDSReader {
  * the interrupt event occurs when the timeout period expires. Currently, only the time to receive the response from the
  * channel counts against the timeout period.
  */
-abstract class TDSCommand {
+abstract class TDSCommand implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = 5485075546328951857L;
+
     abstract boolean doExecute() throws SQLServerException;
 
     static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Command");
@@ -7879,6 +7898,11 @@ abstract class TDSCommand {
  * implementation for such commands.
  */
 abstract class UninterruptableTDSCommand extends TDSCommand {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -6457195977162963793L;
+
     UninterruptableTDSCommand(String logContext) {
         super(logContext, 0, 0);
     }
