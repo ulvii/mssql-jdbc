@@ -387,7 +387,10 @@ final class ReconnectThread extends Thread {
          */
         command.setInterruptsEnabled(true);
         command.attachThread(this);
-        command.addToPoller();
+        long timeoutTotal = (con.getQueryTimeoutSeconds() > 0 ? con.getQueryTimeoutSeconds() : 0) + (con.getCancelQueryTimeoutSeconds() > 0 ? con.getCancelQueryTimeoutSeconds() : 0);
+        if (timeoutTotal > 0) {
+            con.getSharedTimer().schedule(new TDSTimeoutTask(command, con), timeoutTotal);
+        }
         boolean keepRetrying = true;
 
         while ((connectRetryCount != 0) && (!stopRequested) && keepRetrying) {

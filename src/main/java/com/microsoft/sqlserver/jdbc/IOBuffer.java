@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -52,6 +53,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -104,6 +106,7 @@ final class TDS {
     static final int TDS_FEDAUTH_LIBRARY_RESERVED = 0x7F;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYMSI = 0x03;
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
                                                      // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
@@ -547,7 +550,12 @@ final class UTC {
 }
 
 
-final class TDSChannel {
+final class TDSChannel implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -866497813437384090L;
+
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
 
     final Logger getLogger() {
@@ -578,10 +586,11 @@ final class TDSChannel {
     // Socket for SSL-encrypted communications with SQL Server
     private SSLSocket sslSocket;
 
-    // Socket providing the communications interface to the driver.
-    // For SSL-encrypted connections, this is the SSLSocket wrapped
-    // around the TCP socket. For unencrypted connections, it is
-    // just the TCP socket itself.
+    /*
+     * Socket providing the communications interface to the driver. For SSL-encrypted connections, this is the SSLSocket
+     * wrapped around the TCP socket. For unencrypted connections, it is just the TCP socket itself.
+     */
+    @SuppressWarnings("unused")
     private Socket channelSocket;
 
     // Implementation of a Socket proxy that can switch from TDS-wrapped I/O
@@ -1431,27 +1440,66 @@ final class TDSChannel {
             return commonName;
         }
 
-        private boolean validateServerName(String nameInCert) throws CertificateException {
+        private boolean validateServerName(String nameInCert) {
             // Failed to get the common name from DN or empty CN
             if (null == nameInCert) {
-                if (logger.isLoggable(Level.FINER))
+                if (logger.isLoggable(Level.FINER)) {
                     logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
+                }
                 return false;
             }
-
+            // We do not allow wildcards in IDNs (xn--).
+            if (!nameInCert.startsWith("xn--") && nameInCert.contains("*")) {
+                int hostIndex = 0, certIndex = 0, match = 0, startIndex = -1, periodCount = 0;
+                while (hostIndex < hostName.length()) {
+                    if ('.' == hostName.charAt(hostIndex)) {
+                        periodCount++;
+                    }
+                    if (certIndex < nameInCert.length() && hostName.charAt(hostIndex) == nameInCert.charAt(certIndex)) {
+                        hostIndex++;
+                        certIndex++;
+                    } else if (certIndex < nameInCert.length() && '*' == nameInCert.charAt(certIndex)) {
+                        startIndex = certIndex;
+                        match = hostIndex;
+                        certIndex++;
+                    } else if (startIndex != -1 && 0 == periodCount) {
+                        certIndex = startIndex + 1;
+                        match++;
+                        hostIndex = match;
+                    } else {
+                        logFailMessage(nameInCert);
+                        return false;
+                    }
+                }
+                if (nameInCert.length() == certIndex && periodCount > 1) {
+                    logSuccessMessage(nameInCert);
+                    return true;
+                } else {
+                    logFailMessage(nameInCert);
+                    return false;
+                }
+            }
             // Verify that the name in certificate matches exactly with the host name
             if (!nameInCert.equals(hostName)) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(logContext + " The name in certificate " + nameInCert
-                            + " does not match with the server name " + hostName + ".");
+                logFailMessage(nameInCert);
                 return false;
             }
+            logSuccessMessage(nameInCert);
+            return true;
+        }
 
-            if (logger.isLoggable(Level.FINER))
+        private void logFailMessage(String nameInCert) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(logContext + " The name in certificate " + nameInCert
+                        + " does not match with the server name " + hostName + ".");
+            }
+        }
+
+        private void logSuccessMessage(String nameInCert) {
+            if (logger.isLoggable(Level.FINER)) {
                 logger.finer(logContext + " The name in certificate:" + nameInCert + " validated against server name "
                         + hostName + ".");
-
-            return true;
+            }
         }
 
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
@@ -2457,6 +2505,7 @@ final class SocketFinder {
                 sChannel.configureBlocking(false);
 
                 // register the channel for connect event
+                @SuppressWarnings("unused")
                 int ops = SelectionKey.OP_CONNECT;
                 SelectionKey key = sChannel.register(selector, ops);
 
@@ -2827,7 +2876,7 @@ final class SocketFinder {
                             logger.finer("The following child thread acquired parentThreadLock:" + threadId);
                         }
 
-                        parentThreadLock.notify();
+                        parentThreadLock.notifyAll();
                     }
 
                     if (logger.isLoggable(Level.FINER)) {
@@ -3008,6 +3057,10 @@ final class TDSWriter {
         dataIsLoggable = value;
     }
 
+    SharedTimer getSharedTimer() {
+        return con.getSharedTimer();
+    }
+
     private TDSCommand command = null;
 
     // TDS message type (Query, RPC, DTC, etc.) sent at the beginning
@@ -3094,7 +3147,7 @@ final class TDSWriter {
             boolean includeTraceHeader = false;
             int totalHeaderLength = TDS.MESSAGE_HEADER_LENGTH;
             if (TDS.PKT_QUERY == tdsMessageType || TDS.PKT_RPC == tdsMessageType) {
-                if (con.isDenaliOrLater() && !ActivityCorrelator.getCurrent().IsSentToServer()
+                if (con.isDenaliOrLater() && !ActivityCorrelator.getCurrent().isSentToServer()
                         && Util.IsActivityTraceOn()) {
                     includeTraceHeader = true;
                     totalHeaderLength += TDS.TRACE_HEADER_LENGTH;
@@ -4061,11 +4114,11 @@ final class TDSWriter {
                                                                                                       // length is 16
                                                                                                       // bits,
         stagingBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-                                                                                                          // ENDIAN
+        // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
                                                                                                 // bits,
         stagingBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-                                                                                                    // ENDIAN
+        // ENDIAN
         stagingBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
         stagingBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used)
 
@@ -4077,11 +4130,11 @@ final class TDSWriter {
                                                                                                       // length is 16
                                                                                                       // bits,
             logBuffer.put(TDS.PACKET_HEADER_MESSAGE_LENGTH + 1, (byte) ((tdsMessageLength >> 0) & 0xFF)); // written BIG
-                                                                                                          // ENDIAN
+            // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SPID, (byte) ((tdsChannel.getSPID() >> 8) & 0xFF)); // Note: SPID is 16
                                                                                                 // bits,
             logBuffer.put(TDS.PACKET_HEADER_SPID + 1, (byte) ((tdsChannel.getSPID() >> 0) & 0xFF)); // written BIG
-                                                                                                    // ENDIAN
+            // ENDIAN
             logBuffer.put(TDS.PACKET_HEADER_SEQUENCE_NUM, (byte) (packetNum % 256));
             logBuffer.put(TDS.PACKET_HEADER_WINDOW, (byte) 0); // Window (Reserved/Not used);
         }
@@ -4619,11 +4672,11 @@ final class TDSWriter {
                     int tokenType = tdsReader.peekTokenType();
 
                     if (TDS.TDS_ERR == tokenType) {
-                        StreamError databaseError = new StreamError();
+                        SQLServerError databaseError = new SQLServerError();
                         databaseError.setFromTDS(tdsReader);
 
-                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getMessage(), databaseError,
-                                false);
+                        SQLServerException.makeFromDatabaseError(con, null, databaseError.getErrorMessage(),
+                                databaseError, false);
                     }
 
                     command.setInterruptsEnabled(true);
@@ -4867,7 +4920,7 @@ final class TDSWriter {
                 isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentObject);
                 if (currentObject instanceof String)
-                    dataLength = isNull ? 0 : (ParameterUtils.HexToBin(currentObject.toString())).length;
+                    dataLength = ParameterUtils.HexToBin(currentObject.toString()).length;
                 else
                     dataLength = isNull ? 0 : ((byte[]) currentObject).length;
                 if (!isShortValue) {
@@ -6225,10 +6278,16 @@ final class TDSReaderMark {
  *
  * Bytes are read from SQL Server into a FIFO of packets. Reader methods traverse the packets to access the data.
  */
-final class TDSReader {
-    private final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Reader");
+final class TDSReader implements Serializable {
+
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -392905303734809731L;
+
+    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Reader");
     final private String traceID;
-    private TimeoutCommand<TDSCommand> timeoutCommand;
+    private ScheduledFuture<?> timeout;
 
     final public String toString() {
         return traceID;
@@ -6382,9 +6441,8 @@ final class TDSReader {
             // terminate the connection.
             if ((command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0)) {
                 // if a timeout is configured with this object, add it to the timeout poller
-                int timeout = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
-                this.timeoutCommand = new TdsTimeoutCommand(timeout, this.command, this.con);
-                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
+                int seconds = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
+                this.timeout = con.getSharedTimer().schedule(new TDSTimeoutTask(command, con), seconds);
             }
         }
         // First, read the packet header.
@@ -6405,8 +6463,9 @@ final class TDSReader {
         }
 
         // if execution was subject to timeout then stop timing
-        if (this.timeoutCommand != null) {
-            TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
+        if (this.timeout != null) {
+            this.timeout.cancel(false);
+            this.timeout = null;
         }
         // Header size is a 2 byte unsigned short integer in big-endian order.
         int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
@@ -7018,44 +7077,6 @@ final class TDSReader {
     }
 }
 
-
-/**
- * The tds default implementation of a timeout command
- */
-class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
-    public TdsTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
-        super(timeout, command, sqlServerConnection);
-    }
-
-    public void interrupt() {
-        TDSCommand command = getCommand();
-        SQLServerConnection sqlServerConnection = getSqlServerConnection();
-        try {
-            // If TCP Connection to server is silently dropped, exceeding the query timeout
-            // on the same connection does
-            // not throw SQLTimeoutException
-            // The application stops responding instead until SocketTimeoutException is
-            // thrown. In this case, we must
-            // manually terminate the connection.
-            if (null == command && null != sqlServerConnection) {
-                sqlServerConnection.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
-                        SQLServerException.getErrString("R_connectionIsClosed"));
-            } else {
-                // If the timer wasn't canceled before it ran out of
-                // time then interrupt the registered command.
-                command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
-            }
-        } catch (SQLServerException e) {
-            // Unfortunately, there's nothing we can do if we
-            // fail to time out the request. There is no way
-            // to report back what happened.
-            assert null != command;
-            command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
-        }
-    }
-}
-
-
 /**
  * TDSCommand encapsulates an interruptable TDS conversation.
  *
@@ -7067,7 +7088,12 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
  * the interrupt event occurs when the timeout period expires. Currently, only the time to receive the response from the
  * channel counts against the timeout period.
  */
-abstract class TDSCommand {
+abstract class TDSCommand implements Serializable {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = 5485075546328951857L;
+
     abstract boolean doExecute() throws SQLServerException;
 
     final static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Command");
@@ -7177,7 +7203,7 @@ abstract class TDSCommand {
     private volatile boolean readingResponse;
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
-    private TdsTimeoutCommand timeoutCommand;
+    private ScheduledFuture<?> timeout;
     /*
      * Some flags for Connection Resiliency. We need to know if a command has already been registered in the poller, or
      * if it was actually executed.
@@ -7195,18 +7221,6 @@ abstract class TDSCommand {
 
     final boolean readingResponse() {
         return readingResponse;
-    }
-
-    synchronized void addToPoller() {
-        if (!registeredInPoller) {
-            // If command execution is subject to timeout then start timing until
-            // the server returns the first response packet.
-            if (queryTimeoutSeconds > 0) {
-                this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
-                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
-                registeredInPoller = true;
-            }
-        }
     }
 
     boolean wasExecuted() {
@@ -7616,7 +7630,13 @@ abstract class TDSCommand {
 
             throw e;
         }
-        addToPoller();
+
+        // If command execution is subject to timeout then start timing until
+        // the server returns the first response packet.
+        if (queryTimeoutSeconds > 0) {
+            SQLServerConnection conn = tdsReader != null ? tdsReader.getConnection() : null;
+            this.timeout = tdsWriter.getSharedTimer().schedule(new TDSTimeoutTask(this, conn), queryTimeoutSeconds);
+        }
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Reading response...");
@@ -7638,8 +7658,9 @@ abstract class TDSCommand {
         } finally {
             // If command execution was subject to timeout then stop timing as soon
             // as the server returns the first response packet or errors out.
-            if (this.timeoutCommand != null) {
-                TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
+            if (this.timeout != null) {
+                this.timeout.cancel(false);
+                this.timeout = null;
             }
         }
         // A new response is received hence increment unprocessed response count.
@@ -7666,6 +7687,11 @@ abstract class TDSCommand {
  * implementation for such commands.
  */
 abstract class UninterruptableTDSCommand extends TDSCommand {
+    /**
+     * Always update serialVersionUID when prompted.
+     */
+    private static final long serialVersionUID = -6457195977162963793L;
+
     UninterruptableTDSCommand(String logContext) {
         super(logContext, 0, 0);
     }
