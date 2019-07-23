@@ -674,7 +674,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         for (SQLServerDriverPropertyInfo DRIVER_PROPERTY : DRIVER_PROPERTIES) {
             String sProp = DRIVER_PROPERTY.getName();
             String sPropVal = suppliedPropertiesFixed.getProperty(sProp); // supplied properties have precedence
-            if (null != sPropVal) {
+            if (null != sPropVal && !sPropVal.isEmpty()) {
                 // overwrite the property in urlprops if already exists. supp prop has more precedence
                 urlProps.put(sProp, sPropVal);
             }
