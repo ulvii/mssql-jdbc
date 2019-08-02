@@ -13,8 +13,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,7 +28,7 @@ public final class SQLServerDataTable {
     int columnCount = 0;
     Map<Integer, SQLServerDataColumn> columnMetadata = null;
     Set<String> columnNames = null;
-    Map<Integer, List<Object>> rows = null;
+    Map<Integer, Object[]> rows = null;
     private String tvpName = null;
 
     /**
@@ -63,7 +61,7 @@ public final class SQLServerDataTable {
      * 
      * @return an iterator on the rows of the data table.
      */
-    public synchronized Iterator<Entry<Integer, List<Object>>> getIterator() {
+    public synchronized Iterator<Entry<Integer, Object[]>> getIterator() {
         if ((null != rows) && (null != rows.entrySet())) {
             return rows.entrySet().iterator();
         }
@@ -120,7 +118,7 @@ public final class SQLServerDataTable {
             }
 
             Iterator<Entry<Integer, SQLServerDataColumn>> columnsIterator = columnMetadata.entrySet().iterator();
-            List<Object> rowValues = new LinkedList<>();
+            Object[] rowValues = new Object[columnCount];
             int currentColumn = 0;
             while (columnsIterator.hasNext()) {
                 Object val = null;
@@ -155,10 +153,8 @@ public final class SQLServerDataTable {
      * @throws SQLServerException
      *         when an error occurs
      */
-    private void internalAddrow(JDBCType jdbcType, Object val, List<Object> rowValues,
+    private void internalAddrow(JDBCType jdbcType, Object val, Object[] rowValues,
             Map.Entry<Integer, SQLServerDataColumn> pair) throws SQLServerException {
-        int key = pair.getKey();
-        rowValues.add(key, val);
 
         if (null != val) {
             SQLServerDataColumn currentColumnMetadata = pair.getValue();
@@ -166,19 +162,19 @@ public final class SQLServerDataTable {
 
             switch (jdbcType) {
                 case BIGINT:
-                    rowValues.set(key, (val instanceof Long) ? val : Long.parseLong(val.toString()));
+                    rowValues[pair.getKey()] = (null == val) ? null : Long.parseLong(val.toString());
                     break;
 
                 case BIT:
                     if (val instanceof Boolean) {
-                        rowValues.set(key, val);
+                        rowValues[pair.getKey()] = (null == val) ? null : Boolean.parseBoolean(val.toString());
                     } else {
                         String valString = val.toString();
 
                         if ("0".equals(valString) || valString.equalsIgnoreCase(Boolean.FALSE.toString())) {
-                            rowValues.set(key, Boolean.FALSE);
+                            rowValues[pair.getKey()] = Boolean.FALSE;
                         } else if ("1".equals(valString) || valString.equalsIgnoreCase(Boolean.TRUE.toString())) {
-                            rowValues.set(key, Boolean.TRUE);
+                            rowValues[pair.getKey()] = Boolean.TRUE;
                         } else {
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_TVPInvalidColumnValue"));
@@ -189,12 +185,12 @@ public final class SQLServerDataTable {
                     break;
 
                 case INTEGER:
-                    rowValues.set(key, (val instanceof Integer) ? val : Integer.parseInt(val.toString()));
+                    rowValues[pair.getKey()] = (null == val) ? null : Integer.parseInt(val.toString());
                     break;
 
                 case SMALLINT:
                 case TINYINT:
-                    rowValues.set(key, (val instanceof Short) ? val : Short.parseShort(val.toString()));
+                    rowValues[pair.getKey()] = (null == val) ? null : Short.parseShort(val.toString());
                     break;
 
                 case DECIMAL:
@@ -226,16 +222,16 @@ public final class SQLServerDataTable {
                                 + currentColumnMetadata.numberOfDigitsIntegerPart;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues.set(key, bd);
+                    rowValues[pair.getKey()] = bd;
                     break;
 
                 case DOUBLE:
-                    rowValues.set(key, (val instanceof Double) ? val : Double.parseDouble(val.toString()));
+                    rowValues[pair.getKey()] = (null == val) ? null : Double.parseDouble(val.toString());
                     break;
 
                 case FLOAT:
                 case REAL:
-                    rowValues.set(key, (val instanceof Float) ? val : Float.parseFloat(val.toString()));
+                    rowValues[pair.getKey()] = (null == val) ? null : Float.parseFloat(val.toString());
                     break;
 
                 case TIMESTAMP_WITH_TIMEZONE:
@@ -253,9 +249,9 @@ public final class SQLServerDataTable {
                     // java.sql.Date, java.sql.Time and java.sql.Timestamp are subclass of java.util.Date
                     if (val instanceof java.util.Date || val instanceof microsoft.sql.DateTimeOffset
                             || val instanceof OffsetDateTime || val instanceof OffsetTime)
-                        rowValues.set(key, val.toString());
+                        rowValues[pair.getKey()] = val.toString();
                     else
-                        rowValues.set(key, val);
+                        rowValues[pair.getKey()] = val;
                     break;
 
                 case BINARY:
@@ -267,7 +263,7 @@ public final class SQLServerDataTable {
                         currentColumnMetadata.precision = nValueLen;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues.set(key, val);
+                    rowValues[pair.getKey()] = val;
                     break;
 
                 case CHAR:
@@ -285,7 +281,7 @@ public final class SQLServerDataTable {
                         currentColumnMetadata.precision = nValueLen;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues.set(key, val);
+                    rowValues[pair.getKey()] = val;
                     break;
 
                 case SQL_VARIANT:

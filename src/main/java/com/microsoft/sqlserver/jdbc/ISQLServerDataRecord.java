@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.List;
 
 /**
  * Provides an interface to create classes that read in data from any source (such as a file) and allow a structured
@@ -36,7 +35,7 @@ public interface ISQLServerDataRecord {
      * 
      * @return The data for the row.
      */
-    public List<Object> getRowData();
+    public Object[] getRowData();
 
     /**
      * Advances to the next data row.
