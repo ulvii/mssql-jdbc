@@ -1770,7 +1770,8 @@ final class TDSChannel implements Serializable {
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
-
+            
+            System.out.println("SSL Protocol request by client: " + sslProtocol);
             sslContext = SSLContext.getInstance(sslProtocol);
             sslContextProvider = sslContext.getProvider();
 
@@ -1798,7 +1799,8 @@ final class TDSChannel implements Serializable {
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
             sslSocket.startHandshake();
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
-
+            
+            System.out.println("SSL Protocol negotiated after handshake: " + sslSocket.getSession().getProtocol());
             // After SSL handshake is complete, rewire proxy socket to use raw TCP/IP streams ...
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Rewiring proxy streams after handshake");
