@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -24,10 +21,12 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.TimeZone;
+
 
 /**
  * Utility class for all Data Dependant Conversions (DDC).
@@ -38,31 +37,29 @@ final class DDC {
     /**
      * Convert an Integer object to desired target user type.
      * 
-     * @param intvalue
-     *            the value to convert.
+     * @param intValue
+     *        the value to convert.
      * @param valueLength
-     *            the value to convert.
+     *        the value to convert.
      * @param jdbcType
-     *            the jdbc type required.
+     *        the jdbc type required.
      * @param streamType
-     *            the type of stream required.
+     *        the type of stream required.
      * @return the required object.
      */
-    static final Object convertIntegerToObject(int intValue,
-            int valueLength,
-            JDBCType jdbcType,
+    static final Object convertIntegerToObject(int intValue, int valueLength, JDBCType jdbcType,
             StreamType streamType) {
         switch (jdbcType) {
             case INTEGER:
-                return new Integer(intValue);
+                return intValue;
             case SMALLINT: // 2.21 small and tinyint returned as short
             case TINYINT:
-                return new Short((short) intValue);
+                return (short) intValue;
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != intValue);
+                return 0 != intValue;
             case BIGINT:
-                return new Long(intValue);
+                return (long) intValue;
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -70,9 +67,9 @@ final class DDC {
                 return new BigDecimal(Integer.toString(intValue));
             case FLOAT:
             case DOUBLE:
-                return new Double(intValue);
+                return (double) intValue;
             case REAL:
-                return new Float(intValue);
+                return (float) intValue;
             case BINARY:
                 return convertIntToBytes(intValue, valueLength);
             default:
@@ -84,30 +81,27 @@ final class DDC {
      * Convert a Long object to desired target user type.
      * 
      * @param longVal
-     *            the value to convert.
+     *        the value to convert.
      * @param jdbcType
-     *            the jdbc type required.
+     *        the jdbc type required.
      * @param baseSSType
-     *            the base SQLServer type.
+     *        the base SQLServer type.
      * @param streamType
-     *            the stream type.
+     *        the stream type.
      * @return the required object.
      */
-    static final Object convertLongToObject(long longVal,
-            JDBCType jdbcType,
-            SSType baseSSType,
-            StreamType streamType) {
+    static final Object convertLongToObject(long longVal, JDBCType jdbcType, SSType baseSSType, StreamType streamType) {
         switch (jdbcType) {
             case BIGINT:
-                return new Long(longVal);
+                return longVal;
             case INTEGER:
-                return new Integer((int) longVal);
+                return (int) longVal;
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short((short) longVal);
+                return (short) longVal;
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != longVal);
+                return 0 != longVal;
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -115,9 +109,9 @@ final class DDC {
                 return new BigDecimal(Long.toString(longVal));
             case FLOAT:
             case DOUBLE:
-                return new Double(longVal);
+                return (double) longVal;
             case REAL:
-                return new Float(longVal);
+                return (float) longVal;
             case BINARY:
                 byte[] convertedBytes = convertLongToBytes(longVal);
                 int bytesToReturnLength;
@@ -128,22 +122,26 @@ final class DDC {
                     case TINYINT:
                         bytesToReturnLength = 1;
                         bytesToReturn = new byte[bytesToReturnLength];
-                        System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0, bytesToReturnLength);
+                        System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0,
+                                bytesToReturnLength);
                         return bytesToReturn;
                     case SMALLINT:
                         bytesToReturnLength = 2;
                         bytesToReturn = new byte[bytesToReturnLength];
-                        System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0, bytesToReturnLength);
+                        System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0,
+                                bytesToReturnLength);
                         return bytesToReturn;
                     case INTEGER:
                         bytesToReturnLength = 4;
                         bytesToReturn = new byte[bytesToReturnLength];
-                        System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0, bytesToReturnLength);
+                        System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0,
+                                bytesToReturnLength);
                         return bytesToReturn;
                     case BIGINT:
                         bytesToReturnLength = 8;
                         bytesToReturn = new byte[bytesToReturnLength];
-                        System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0, bytesToReturnLength);
+                        System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0,
+                                bytesToReturnLength);
                         return bytesToReturn;
                     default:
                         return convertedBytes;
@@ -152,23 +150,23 @@ final class DDC {
             case VARBINARY:
                 switch (baseSSType) {
                     case BIGINT:
-                        return new Long(longVal);
+                        return longVal;
                     case INTEGER:
-                        return new Integer((int) longVal);
+                        return (int) longVal;
                     case SMALLINT: // small and tinyint returned as short
                     case TINYINT:
-                        return new Short((short) longVal);
+                        return (short) longVal;
                     case BIT:
-                        return new Boolean(0 != longVal);
+                        return 0 != longVal;
                     case DECIMAL:
                     case NUMERIC:
                     case MONEY:
                     case SMALLMONEY:
                         return new BigDecimal(Long.toString(longVal));
                     case FLOAT:
-                        return new Double(longVal);
+                        return (double) longVal;
                     case REAL:
-                        return new Float(longVal);
+                        return (float) longVal;
                     case BINARY:
                         return convertLongToBytes(longVal);
                     default:
@@ -183,13 +181,12 @@ final class DDC {
      * Encodes an integer value to a byte array in big-endian order.
      * 
      * @param intValue
-     *            the integer value to encode.
+     *        the integer value to encode.
      * @param valueLength
-     *            the number of bytes to encode.
+     *        the number of bytes to encode.
      * @return the byte array containing the big-endian encoded value.
      */
-    static final byte[] convertIntToBytes(int intValue,
-            int valueLength) {
+    static final byte[] convertIntToBytes(int intValue, int valueLength) {
         byte bytes[] = new byte[valueLength];
         for (int i = valueLength; i-- > 0;) {
             bytes[i] = (byte) (intValue & 0xFF);
@@ -202,29 +199,27 @@ final class DDC {
      * Convert a Float object to desired target user type.
      * 
      * @param floatVal
-     *            the value to convert.
+     *        the value to convert.
      * @param jdbcType
-     *            the jdbc type required.
+     *        the jdbc type required.
      * @param streamType
-     *            the stream type.
+     *        the stream type.
      * @return the required object.
      */
-    static final Object convertFloatToObject(float floatVal,
-            JDBCType jdbcType,
-            StreamType streamType) {
+    static final Object convertFloatToObject(float floatVal, JDBCType jdbcType, StreamType streamType) {
         switch (jdbcType) {
             case REAL:
-                return new Float(floatVal);
+                return floatVal;
             case INTEGER:
-                return new Integer((int) floatVal);
+                return (int) floatVal;
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short((short) floatVal);
+                return (short) floatVal;
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != Float.compare(0.0f, floatVal));
+                return 0 != Float.compare(0.0f, floatVal);
             case BIGINT:
-                return new Long((long) floatVal);
+                return (long) floatVal;
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -232,7 +227,7 @@ final class DDC {
                 return new BigDecimal(Float.toString(floatVal));
             case FLOAT:
             case DOUBLE:
-                return new Double((new Float(floatVal)).doubleValue());
+                return (Float.valueOf(floatVal)).doubleValue();
             case BINARY:
                 return convertIntToBytes(Float.floatToRawIntBits(floatVal), 4);
             default:
@@ -244,7 +239,7 @@ final class DDC {
      * Encodes a long value to a byte array in big-endian order.
      * 
      * @param longValue
-     *            the long value to encode.
+     *        the long value to encode.
      * @return the byte array containing the big-endian encoded value.
      */
     static final byte[] convertLongToBytes(long longValue) {
@@ -260,32 +255,30 @@ final class DDC {
      * Convert a Double object to desired target user type.
      * 
      * @param doubleVal
-     *            the value to convert.
+     *        the value to convert.
      * @param jdbcType
-     *            the jdbc type required.
+     *        the jdbc type required.
      * @param streamType
-     *            the stream type.
+     *        the stream type.
      * @return the required object.
      */
-    static final Object convertDoubleToObject(double doubleVal,
-            JDBCType jdbcType,
-            StreamType streamType) {
+    static final Object convertDoubleToObject(double doubleVal, JDBCType jdbcType, StreamType streamType) {
         switch (jdbcType) {
             case FLOAT:
             case DOUBLE:
-                return new Double(doubleVal);
+                return doubleVal;
             case REAL:
-                return new Float((new Double(doubleVal)).floatValue());
+                return (Double.valueOf(doubleVal)).floatValue();
             case INTEGER:
-                return new Integer((int) doubleVal);
+                return (int) doubleVal;
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short((short) doubleVal);
+                return (short) doubleVal;
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != Double.compare(0.0d, doubleVal));
+                return 0 != Double.compare(0.0d, doubleVal);
             case BIGINT:
-                return new Long((long) doubleVal);
+                return (long) doubleVal;
             case DECIMAL:
             case NUMERIC:
             case MONEY:
@@ -298,16 +291,14 @@ final class DDC {
         }
     }
 
-    static final byte[] convertBigDecimalToBytes(BigDecimal bigDecimalVal,
-            int scale) {
+    static final byte[] convertBigDecimalToBytes(BigDecimal bigDecimalVal, int scale) {
         byte[] valueBytes;
 
         if (bigDecimalVal == null) {
             valueBytes = new byte[2];
             valueBytes[0] = (byte) scale;
             valueBytes[1] = 0; // data length
-        }
-        else {
+        } else {
             boolean isNegative = (bigDecimalVal.signum() < 0);
 
             // NOTE: Handle negative scale as a special case for JDK 1.5 and later VMs.
@@ -337,16 +328,14 @@ final class DDC {
      * Convert a BigDecimal object to desired target user type.
      * 
      * @param bigDecimalVal
-     *            the value to convert.
+     *        the value to convert.
      * @param jdbcType
-     *            the jdbc type required.
+     *        the jdbc type required.
      * @param streamType
-     *            the stream type.
+     *        the stream type.
      * @return the required object.
      */
-    static final Object convertBigDecimalToObject(BigDecimal bigDecimalVal,
-            JDBCType jdbcType,
-            StreamType streamType) {
+    static final Object convertBigDecimalToObject(BigDecimal bigDecimalVal, JDBCType jdbcType, StreamType streamType) {
         switch (jdbcType) {
             case DECIMAL:
             case NUMERIC:
@@ -355,19 +344,19 @@ final class DDC {
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:
-                return new Double(bigDecimalVal.doubleValue());
+                return bigDecimalVal.doubleValue();
             case REAL:
-                return new Float(bigDecimalVal.floatValue());
+                return bigDecimalVal.floatValue();
             case INTEGER:
-                return new Integer(bigDecimalVal.intValue());
+                return bigDecimalVal.intValue();
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short(bigDecimalVal.shortValue());
+                return bigDecimalVal.shortValue();
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0)));
+                return 0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0));
             case BIGINT:
-                return new Long(bigDecimalVal.longValue());
+                return bigDecimalVal.longValue();
             case BINARY:
                 return convertBigDecimalToBytes(bigDecimalVal, bigDecimalVal.scale());
             default:
@@ -379,18 +368,16 @@ final class DDC {
      * Convert a Money object to desired target user type.
      * 
      * @param bigDecimalVal
-     *            the value to convert.
+     *        the value to convert.
      * @param jdbcType
-     *            the jdbc type required.
+     *        the jdbc type required.
      * @param streamType
-     *            the stream type.
+     *        the stream type.
      * @param numberOfBytes
-     *            the number of bytes to convert
+     *        the number of bytes to convert
      * @return the required object.
      */
-    static final Object convertMoneyToObject(BigDecimal bigDecimalVal,
-            JDBCType jdbcType,
-            StreamType streamType,
+    static final Object convertMoneyToObject(BigDecimal bigDecimalVal, JDBCType jdbcType, StreamType streamType,
             int numberOfBytes) {
         switch (jdbcType) {
             case DECIMAL:
@@ -400,19 +387,19 @@ final class DDC {
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:
-                return new Double(bigDecimalVal.doubleValue());
+                return bigDecimalVal.doubleValue();
             case REAL:
-                return new Float(bigDecimalVal.floatValue());
+                return bigDecimalVal.floatValue();
             case INTEGER:
-                return new Integer(bigDecimalVal.intValue());
+                return bigDecimalVal.intValue();
             case SMALLINT: // small and tinyint returned as short
             case TINYINT:
-                return new Short(bigDecimalVal.shortValue());
+                return bigDecimalVal.shortValue();
             case BIT:
             case BOOLEAN:
-                return new Boolean(0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0)));
+                return 0 != bigDecimalVal.compareTo(BigDecimal.valueOf(0));
             case BIGINT:
-                return new Long(bigDecimalVal.longValue());
+                return bigDecimalVal.longValue();
             case BINARY:
                 return convertToBytes(bigDecimalVal, bigDecimalVal.scale(), numberOfBytes);
             default:
@@ -421,9 +408,7 @@ final class DDC {
     }
 
     // converts big decimal to money and smallmoney
-    private static byte[] convertToBytes(BigDecimal value,
-            int scale,
-            int numBytes) {
+    private static byte[] convertToBytes(BigDecimal value, int scale, int numBytes) {
         boolean isNeg = value.signum() < 0;
 
         value = value.setScale(scale);
@@ -439,9 +424,7 @@ final class DDC {
             }
         }
         int offset = numBytes - unscaledBytes.length;
-        for (int i = offset; i < numBytes; ++i) {
-            ret[i] = unscaledBytes[i - offset];
-        }
+        System.arraycopy(unscaledBytes, 0, ret, offset, numBytes - offset);
         return ret;
     }
 
@@ -449,17 +432,16 @@ final class DDC {
      * Convert a byte array to desired target user type.
      * 
      * @param bytesValue
-     *            the value to convert.
+     *        the value to convert.
      * @param jdbcType
-     *            the jdbc type required.
+     *        the jdbc type required.
      * @param baseTypeInfo
-     *            the type information associated with bytesValue.
+     *        the type information associated with bytesValue.
      * @return the required object.
      * @throws SQLServerException
-     *             when an error occurs.
+     *         when an error occurs.
      */
-    static final Object convertBytesToObject(byte[] bytesValue,
-            JDBCType jdbcType,
+    static final Object convertBytesToObject(byte[] bytesValue, JDBCType jdbcType,
             TypeInfo baseTypeInfo) throws SQLServerException {
         switch (jdbcType) {
             case CHAR:
@@ -489,8 +471,10 @@ final class DDC {
                 return bytesValue;
 
             default:
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionFromTo"));
-                throw new SQLServerException(form.format(new Object[] {baseTypeInfo.getSSType().name(), jdbcType}), null, 0, null);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {baseTypeInfo.getSSType().name(), jdbcType}),
+                        null, 0, null);
         }
     }
 
@@ -498,16 +482,14 @@ final class DDC {
      * Convert a String object to desired target user type.
      * 
      * @param stringVal
-     *            the value to convert.
+     *        the value to convert.
      * @param charset
-     *            the character set.
+     *        the character set.
      * @param jdbcType
-     *            the jdbc type required.
+     *        the jdbc type required.
      * @return the required object.
      */
-    static final Object convertStringToObject(String stringVal,
-            Charset charset,
-            JDBCType jdbcType,
+    static final Object convertStringToObject(String stringVal, Charset charset, JDBCType jdbcType,
             StreamType streamType) throws UnsupportedEncodingException, IllegalArgumentException {
         switch (jdbcType) {
             // Convert String to Numeric types.
@@ -529,13 +511,16 @@ final class DDC {
             case BIT:
             case BOOLEAN:
                 String trimmedString = stringVal.trim();
-                return (1 == trimmedString.length()) ? Boolean.valueOf('1' == trimmedString.charAt(0)) : Boolean.valueOf(trimmedString);
+                return (1 == trimmedString.length()) ? Boolean.valueOf('1' == trimmedString.charAt(0))
+                                                     : Boolean.valueOf(trimmedString);
             case BIGINT:
                 return Long.valueOf(stringVal.trim());
 
             // Convert String to Temporal types.
             case TIMESTAMP:
                 return java.sql.Timestamp.valueOf(stringVal.trim());
+            case LOCALDATETIME:
+                return parseStringIntoLDT(stringVal.trim());
             case DATE:
                 return java.sql.Date.valueOf(getDatePart(stringVal.trim()));
             case TIME: {
@@ -547,7 +532,8 @@ final class DDC {
                 // 1) Normalize and parse as a Timestamp
                 // 2) Round fractional seconds up to the nearest millisecond (max resolution of java.sql.Time)
                 // 3) Renormalize (as rounding may have changed the date) to a java.sql.Time
-                java.sql.Timestamp ts = java.sql.Timestamp.valueOf(TDS.BASE_DATE_1970 + " " + getTimePart(stringVal.trim()));
+                java.sql.Timestamp ts = java.sql.Timestamp
+                        .valueOf(TDS.BASE_DATE_1970 + " " + getTimePart(stringVal.trim()));
                 GregorianCalendar cal = new GregorianCalendar(Locale.US);
                 cal.clear();
                 cal.setTimeInMillis(ts.getTime());
@@ -576,9 +562,101 @@ final class DDC {
         }
     }
 
-    static final Object convertStreamToObject(BaseInputStream stream,
-            TypeInfo typeInfo,
-            JDBCType jdbcType,
+    /**
+     * Taken from java.sql.Timestamp implementation
+     * 
+     * @param s
+     *        String to be parsed
+     * @return LocalDateTime
+     */
+    private static LocalDateTime parseStringIntoLDT(String s) {
+        final int YEAR_LENGTH = 4;
+        final int MONTH_LENGTH = 2;
+        final int DAY_LENGTH = 2;
+        final int MAX_MONTH = 12;
+        final int MAX_DAY = 31;
+        int year = 0;
+        int month = 0;
+        int day = 0;
+        int hour;
+        int minute;
+        int second;
+        int a_nanos = 0;
+        int firstDash;
+        int secondDash;
+        int dividingSpace;
+        int firstColon;
+        int secondColon;
+        int period;
+        String formatError = "Timestamp format must be yyyy-mm-dd hh:mm:ss[.fffffffff]";
+
+        if (s == null)
+            throw new java.lang.IllegalArgumentException("null string");
+
+        // Split the string into date and time components
+        s = s.trim();
+        dividingSpace = s.indexOf(' ');
+        if (dividingSpace < 0) {
+            throw new java.lang.IllegalArgumentException(formatError);
+        }
+
+        // Parse the date
+        firstDash = s.indexOf('-');
+        secondDash = s.indexOf('-', firstDash + 1);
+
+        // Parse the time
+        firstColon = s.indexOf(':', dividingSpace + 1);
+        secondColon = s.indexOf(':', firstColon + 1);
+        period = s.indexOf('.', secondColon + 1);
+
+        // Convert the date
+        boolean parsedDate = false;
+        if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
+            if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
+                    && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
+                year = Integer.parseInt(s, 0, firstDash, 10);
+                month = Integer.parseInt(s, firstDash + 1, secondDash, 10);
+                day = Integer.parseInt(s, secondDash + 1, dividingSpace, 10);
+
+                if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
+                    parsedDate = true;
+                }
+            }
+        }
+        if (!parsedDate) {
+            throw new java.lang.IllegalArgumentException(formatError);
+        }
+
+        // Convert the time; default missing nanos
+        int len = s.length();
+        if (firstColon > 0 && secondColon > 0 && secondColon < len - 1) {
+            hour = Integer.parseInt(s, dividingSpace + 1, firstColon, 10);
+            minute = Integer.parseInt(s, firstColon + 1, secondColon, 10);
+            if (period > 0 && period < len - 1) {
+                second = Integer.parseInt(s, secondColon + 1, period, 10);
+                int nanoPrecision = len - (period + 1);
+                if (nanoPrecision > 9)
+                    throw new java.lang.IllegalArgumentException(formatError);
+                if (!Character.isDigit(s.charAt(period + 1)))
+                    throw new java.lang.IllegalArgumentException(formatError);
+                int tmpNanos = Integer.parseInt(s, period + 1, len, 10);
+                while (nanoPrecision < 9) {
+                    tmpNanos *= 10;
+                    nanoPrecision++;
+                }
+                a_nanos = tmpNanos;
+            } else if (period > 0) {
+                throw new java.lang.IllegalArgumentException(formatError);
+            } else {
+                second = Integer.parseInt(s, secondColon + 1, len, 10);
+            }
+        } else {
+            throw new java.lang.IllegalArgumentException(formatError);
+        }
+        return LocalDateTime.of(year, month, day, hour, minute, second, a_nanos);
+    }
+
+    static final Object convertStreamToObject(BaseInputStream stream, TypeInfo typeInfo, JDBCType jdbcType,
             InputStreamGetterArgs getterArgs) throws SQLServerException {
         // Need to handle the simple case of a null value here, as it is not done
         // outside this function.
@@ -592,6 +670,22 @@ final class DDC {
 
         try {
             switch (jdbcType) {
+                case CLOB:
+                    return new SQLServerClob(stream, typeInfo);
+                case NCLOB:
+                    return new SQLServerNClob(stream, typeInfo);
+                case SQLXML:
+                    return new SQLServerSQLXML(stream, getterArgs, typeInfo);
+                case BINARY:
+                case VARBINARY:
+                case LONGVARBINARY:
+                case BLOB:
+                    // Where allowed, streams convert directly to binary representation
+                    if (StreamType.BINARY == getterArgs.streamType)
+                        return stream;
+                    if (JDBCType.BLOB == jdbcType)
+                        return new SQLServerBlob(stream);
+                    return stream.getBytes();
                 case CHAR:
                 case VARCHAR:
                 case LONGVARCHAR:
@@ -599,23 +693,33 @@ final class DDC {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 default:
-
                     // Binary streams to character types:
                     // - Direct conversion to ASCII stream
                     // - Convert as hexized value to other character types
-                    if (SSType.BINARY == ssType || SSType.VARBINARY == ssType || SSType.VARBINARYMAX == ssType || SSType.TIMESTAMP == ssType
-                            || SSType.IMAGE == ssType || SSType.UDT == ssType) {
+                    if (SSType.BINARY == ssType || SSType.VARBINARY == ssType || SSType.VARBINARYMAX == ssType
+                            || SSType.TIMESTAMP == ssType || SSType.IMAGE == ssType || SSType.UDT == ssType) {
                         if (StreamType.ASCII == getterArgs.streamType) {
                             return stream;
-                        }
-                        else {
-                            assert StreamType.CHARACTER == getterArgs.streamType || StreamType.NONE == getterArgs.streamType;
+                        } else {
+                            assert StreamType.CHARACTER == getterArgs.streamType
+                                    || StreamType.NONE == getterArgs.streamType;
 
                             byte[] byteValue = stream.getBytes();
                             if (JDBCType.GUID == jdbcType) {
                                 return Util.readGUID(byteValue);
-                            }
-                            else {
+                            } else if (JDBCType.GEOMETRY == jdbcType) {
+                                if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(),
+                                            jdbcType.toString());
+                                }
+                                return Geometry.STGeomFromWKB(byteValue);
+                            } else if (JDBCType.GEOGRAPHY == jdbcType) {
+                                if (!typeInfo.getSSTypeName().equalsIgnoreCase(jdbcType.toString())) {
+                                    DataTypes.throwConversionError(typeInfo.getSSTypeName().toUpperCase(),
+                                            jdbcType.toString());
+                                }
+                                return Geography.STGeomFromWKB(byteValue);
+                            } else {
                                 String hexString = Util.bytesToHexString(byteValue, byteValue.length);
 
                                 if (StreamType.NONE == getterArgs.streamType)
@@ -636,44 +740,23 @@ final class DDC {
                         if (getterArgs.isAdaptive) {
                             return AsciiFilteredUnicodeInputStream.MakeAsciiFilteredUnicodeInputStream(stream,
                                     new BufferedReader(new InputStreamReader(stream, typeInfo.getCharset())));
+                        } else {
+                            return new ByteArrayInputStream(
+                                    (new String(stream.getBytes(), typeInfo.getCharset())).getBytes(US_ASCII));
                         }
-                        else {
-                            return new ByteArrayInputStream((new String(stream.getBytes(), typeInfo.getCharset())).getBytes(US_ASCII));
-                        }
-                    }
-                    else if (StreamType.CHARACTER == getterArgs.streamType || StreamType.NCHARACTER == getterArgs.streamType) {
+                    } else if (StreamType.CHARACTER == getterArgs.streamType
+                            || StreamType.NCHARACTER == getterArgs.streamType) {
                         if (getterArgs.isAdaptive)
                             return new BufferedReader(new InputStreamReader(stream, typeInfo.getCharset()));
                         else
                             return new StringReader(new String(stream.getBytes(), typeInfo.getCharset()));
                     }
 
-                    // None of the special/fast textual conversion cases applied. Just go the normal route of converting via String.
-                    return convertStringToObject(new String(stream.getBytes(), typeInfo.getCharset()), typeInfo.getCharset(), jdbcType,
-                            getterArgs.streamType);
+                    // None of the special/fast textual conversion cases applied. Just go the normal route of converting
+                    // via String.
+                    return convertStringToObject(new String(stream.getBytes(), typeInfo.getCharset()),
+                            typeInfo.getCharset(), jdbcType, getterArgs.streamType);
 
-                case CLOB:
-                    return new SQLServerClob(stream, typeInfo);
-
-                case NCLOB:
-                    return new SQLServerNClob(stream, typeInfo);
-                case SQLXML:
-                    return new SQLServerSQLXML(stream, getterArgs, typeInfo);
-
-                case BINARY:
-                case VARBINARY:
-                case LONGVARBINARY:
-                case BLOB:
-
-                    // Where allowed, streams convert directly to binary representation
-
-                    if (StreamType.BINARY == getterArgs.streamType)
-                        return stream;
-
-                    if (JDBCType.BLOB == jdbcType)
-                        return new SQLServerBlob(stream);
-
-                    return stream.getBytes();
             }
         }
 
@@ -687,8 +770,7 @@ final class DDC {
         catch (IllegalArgumentException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
             throw new SQLServerException(form.format(new Object[] {typeInfo.getSSType(), jdbcType}), null, 0, e);
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
             throw new SQLServerException(form.format(new Object[] {typeInfo.getSSType(), jdbcType}), null, 0, e);
         }
@@ -714,8 +796,7 @@ final class DDC {
 
     // Formats nanoseconds as a String of the form ".nnnnnnn...." where the number
     // of digits is equal to the scale. Returns the empty string for scale = 0;
-    private static String fractionalSecondsString(long subSecondNanos,
-            int scale) {
+    private static String fractionalSecondsString(long subSecondNanos, int scale) {
         assert 0 <= subSecondNanos && subSecondNanos < Nanos.PER_SECOND;
         assert 0 <= scale && scale <= TDS.MAX_FRACTIONAL_SECONDS_SCALE;
 
@@ -724,7 +805,8 @@ final class DDC {
         if (0 == scale)
             return "";
 
-        return java.math.BigDecimal.valueOf(subSecondNanos % Nanos.PER_SECOND, 9).setScale(scale).toPlainString().substring(1);
+        return java.math.BigDecimal.valueOf(subSecondNanos % Nanos.PER_SECOND, 9).setScale(scale).toPlainString()
+                .substring(1);
     }
 
     /**
@@ -739,41 +821,47 @@ final class DDC {
      * java.sql.Date java.sql.Time java.sql.Timestamp java.lang.String
      *
      * @param jdbcType
-     *            the JDBC type indicating the desired conversion
+     *        the JDBC type indicating the desired conversion
      *
      * @param ssType
-     *            the SQL Server data type of the value being converted
+     *        the SQL Server data type of the value being converted
      *
      * @param timeZoneCalendar
-     *            (optional) a Calendar representing the time zone to associate with the resulting converted value. For DATETIMEOFFSET, this parameter
-     *            represents the time zone associated with the value. Null means to use the default VM time zone.
+     *        (optional) a Calendar representing the time zone to associate with the resulting converted value. For
+     *        DATETIMEOFFSET, this parameter represents the time zone associated with the value. Null means to use the
+     *        default VM time zone.
      *
      * @param daysSinceBaseDate
-     *            The date part of the value, expressed as a number of days since the base date for the specified SQL Server data type. For DATETIME
-     *            and SMALLDATETIME, the base date is 1/1/1900. For other types, the base date is 1/1/0001. The number of days assumes Gregorian leap
-     *            year behavior over the entire supported range of values. For TIME values, this parameter must be the number of days between 1/1/0001
-     *            and 1/1/1900 when converting to java.sql.Timestamp.
+     *        The date part of the value, expressed as a number of days since the base date for the specified SQL Server
+     *        data type. For DATETIME and SMALLDATETIME, the base date is 1/1/1900. For other types, the base date is
+     *        1/1/0001. The number of days assumes Gregorian leap year behavior over the entire supported range of
+     *        values. For TIME values, this parameter must be the number of days between 1/1/0001 and 1/1/1900 when
+     *        converting to java.sql.Timestamp.
      * 
      * @param ticksSinceMidnight
-     *            The time part of the value, expressed as a number of time units (ticks) since midnight. For DATETIME and SMALLDATETIME SQL Server
-     *            data types, time units are in milliseconds. For other types, time units are in nanoseconds. For DATE values, this parameter must be
-     *            0.
+     *        The time part of the value, expressed as a number of time units (ticks) since midnight. For DATETIME and
+     *        SMALLDATETIME SQL Server data types, time units are in milliseconds. For other types, time units are in
+     *        nanoseconds. For DATE values, this parameter must be 0.
      *
      * @param fractionalSecondsScale
-     *            the desired fractional seconds scale to use when formatting the value as a String. Ignored for conversions to Java types other than
-     *            String.
+     *        the desired fractional seconds scale to use when formatting the value as a String. Ignored for conversions
+     *        to Java types other than String.
      *
      * @return a Java object of the desired type.
      */
-    static final Object convertTemporalToObject(JDBCType jdbcType,
-            SSType ssType,
-            Calendar timeZoneCalendar,
-            int daysSinceBaseDate,
-            long ticksSinceMidnight,
-            int fractionalSecondsScale) {
+    static final Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, Calendar timeZoneCalendar,
+            int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) {
+
+        // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
+        // use the path below instead to optimize performance.
+        if (null == timeZoneCalendar) {
+            return convertTemporalToObject(jdbcType, ssType, daysSinceBaseDate, ticksSinceMidnight,
+                    fractionalSecondsScale);
+        }
+
         // Determine the local time zone to associate with the value. Use the default VM
         // time zone if no time zone is otherwise specified.
-        TimeZone localTimeZone = (null != timeZoneCalendar) ? timeZoneCalendar.getTimeZone() : TimeZone.getDefault();
+        TimeZone localTimeZone = timeZoneCalendar.getTimeZone();
 
         // Assumed time zone associated with the date and time parts of the value.
         //
@@ -782,7 +870,6 @@ final class DDC {
         TimeZone componentTimeZone = (SSType.DATETIMEOFFSET == ssType) ? UTC.timeZone : localTimeZone;
 
         int subSecondNanos;
-
         // The date and time parts assume a Gregorian calendar with Gregorian leap year behavior
         // over the entire supported range of values. Create and initialize such a calendar to
         // use to interpret the date and time parts in their associated time zone.
@@ -832,7 +919,8 @@ final class DDC {
                     //
                     // Ticks are in nanoseconds.
 
-                    cal.set(1, Calendar.JANUARY, 1 + daysSinceBaseDate + GregorianChange.EXTRA_DAYS_TO_BE_ADDED, 0, 0, 0);
+                    cal.set(1, Calendar.JANUARY, 1 + daysSinceBaseDate + GregorianChange.EXTRA_DAYS_TO_BE_ADDED, 0, 0,
+                            0);
                     cal.set(Calendar.MILLISECOND, (int) (ticksSinceMidnight / Nanos.PER_MILLISECOND));
                 }
 
@@ -909,20 +997,13 @@ final class DDC {
             default:
                 throw new AssertionError("Unexpected SSType: " + ssType);
         }
-        int localMillisOffset;
-        if (null == timeZoneCalendar) {
-            TimeZone tz = TimeZone.getDefault();
-            GregorianCalendar _cal = new GregorianCalendar(componentTimeZone, Locale.US);
-            _cal.setLenient(true);
-            _cal.clear();
-            localMillisOffset = tz.getOffset(_cal.getTimeInMillis());
-        }
-        else {
-            localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
-        }
+
+        int localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
+
         // Convert the calendar value (in local time) to the desired Java object type.
         switch (jdbcType.category) {
-            case BINARY: {
+            case BINARY:
+            case SQL_VARIANT: {
                 switch (ssType) {
                     case DATE: {
                         // Per JDBC spec, the time part of java.sql.Date values is initialized to midnight
@@ -1010,6 +1091,9 @@ final class DDC {
             case TIMESTAMP: {
                 java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
                 ts.setNanos(subSecondNanos);
+                if (jdbcType == JDBCType.LOCALDATETIME) {
+                    return ts.toLocalDateTime();
+                }
                 return ts;
             }
 
@@ -1053,9 +1137,12 @@ final class DDC {
                         assert 0 == localMillisOffset % (60 * 1000);
 
                         int unsignedMinutesOffset = Math.abs(localMillisOffset / (60 * 1000));
-                        return String.format(Locale.US, "%1$tF %1$tT%2$s %3$c%4$02d:%5$02d", // yyyy-mm-dd hh:mm:ss[.nnnnnnn] [+|-]hh:mm
-                                cal, fractionalSecondsString(subSecondNanos, fractionalSecondsScale), (localMillisOffset >= 0) ? '+' : '-',
-                                unsignedMinutesOffset / 60, unsignedMinutesOffset % 60);
+                        return String.format(Locale.US, "%1$tF %1$tT%2$s %3$c%4$02d:%5$02d", // yyyy-mm-dd
+                                                                                             // hh:mm:ss[.nnnnnnn]
+                                                                                             // [+|-]hh:mm
+                                cal, fractionalSecondsString(subSecondNanos, fractionalSecondsScale),
+                                (localMillisOffset >= 0) ? '+' : '-', unsignedMinutesOffset / 60,
+                                unsignedMinutesOffset % 60);
                     }
 
                     case DATETIME: // and SMALLDATETIME
@@ -1073,26 +1160,156 @@ final class DDC {
         }
     }
 
+    private static Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, int daysSinceBaseDate,
+            long ticksSinceMidnight, int fractionalSecondsScale) {
+        int subSecondNanos;
+
+        // In cases where Timezone values don't need to be considered, use LocalDateTime go avoid
+        // overhead from using a Calendar object.
+        // Note that DateTimeOffset path is not handled in this method, since DateTimeOffset always has
+        // its own Calendar object (UTC timezone) associated with it.
+        LocalDateTime ldt = null;
+
+        switch (ssType) {
+            case TIME: {
+                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0).plusNanos(ticksSinceMidnight);
+
+                subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
+                break;
+            }
+
+            case DATE:
+            case DATETIME2:
+            case DATETIMEOFFSET: {
+                ldt = LocalDateTime.of(1, 1, 1, 0, 0, 0);
+                ldt = ldt.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
+                if (jdbcType.category != JDBCType.Category.DATE) {
+                    ldt = ldt.plusNanos(ticksSinceMidnight);
+                }
+                subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
+                break;
+            }
+
+            case DATETIME: // and SMALLDATETIME
+            {
+                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0);
+                ldt = ldt.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
+                if (jdbcType.category != JDBCType.Category.DATE) {
+                    ldt = ldt.plusNanos(ticksSinceMidnight * Nanos.PER_MILLISECOND);
+                }
+
+                subSecondNanos = (int) ((ticksSinceMidnight * Nanos.PER_MILLISECOND) % Nanos.PER_SECOND);
+                break;
+            }
+
+            default:
+                throw new AssertionError("Unexpected SSType: " + ssType);
+        }
+
+        switch (jdbcType.category) {
+            case BINARY:
+            case SQL_VARIANT: {
+                switch (ssType) {
+                    case DATE: {
+                        return java.sql.Date.valueOf(ldt.toLocalDate());
+                    }
+
+                    case DATETIME:
+                    case DATETIME2: {
+                        java.sql.Timestamp ts = java.sql.Timestamp.valueOf(ldt);
+                        ts.setNanos(subSecondNanos);
+                        return ts;
+                    }
+
+                    case TIME: {
+                        if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
+                            ldt = ldt.plusNanos(1000000);
+                        }
+                        java.sql.Time t = java.sql.Time.valueOf(ldt.toLocalTime());
+                        t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
+                        return t;
+                    }
+
+                    default:
+                        throw new AssertionError("Unexpected SSType: " + ssType);
+                }
+            }
+
+            case DATE: {
+                return java.sql.Date.valueOf(ldt.toLocalDate());
+            }
+
+            case TIME: {
+                if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
+                    ldt = ldt.plusNanos(1000000);
+                }
+                java.sql.Time t = java.sql.Time.valueOf(ldt.toLocalTime());
+                t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
+                return t;
+            }
+
+            case TIMESTAMP: {
+                if (jdbcType == JDBCType.LOCALDATETIME) {
+                    return ldt;
+                }
+
+                java.sql.Timestamp ts = java.sql.Timestamp.valueOf(ldt);
+                ts.setNanos(subSecondNanos);
+                return ts;
+            }
+
+            case CHARACTER: {
+                switch (ssType) {
+                    case DATE: {
+                        return String.format(Locale.US, "%1$tF", // yyyy-mm-dd
+                                java.sql.Timestamp.valueOf(ldt));
+                    }
+
+                    case TIME: {
+                        return String.format(Locale.US, "%1$tT%2$s", // hh:mm:ss[.nnnnnnn]
+                                ldt, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                    }
+
+                    case DATETIME2: {
+                        return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
+                                java.sql.Timestamp.valueOf(ldt), fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                    }
+
+                    case DATETIME: // and SMALLDATETIME
+                    {
+                        return (java.sql.Timestamp.valueOf(ldt)).toString();
+                    }
+
+                    default:
+                        throw new AssertionError("Unexpected SSType: " + ssType);
+                }
+            }
+
+            default:
+                throw new AssertionError("Unexpected JDBCType: " + jdbcType);
+        }
+    }
+
     /**
-     * Returns the number of days elapsed from January 1 of the specified baseYear (Gregorian) to the specified dayOfYear in the specified year,
-     * assuming pure Gregorian calendar rules (no Julian to Gregorian cutover).
+     * Returns the number of days elapsed from January 1 of the specified baseYear (Gregorian) to the specified
+     * dayOfYear in the specified year, assuming pure Gregorian calendar rules (no Julian to Gregorian cutover).
      */
-    static int daysSinceBaseDate(int year,
-            int dayOfYear,
-            int baseYear) {
+    static int daysSinceBaseDate(int year, int dayOfYear, int baseYear) {
         assert year >= 1;
         assert baseYear >= 1;
         assert dayOfYear >= 1;
 
-        return (dayOfYear - 1) +                        // Days into the current year
-                (year - baseYear) * TDS.DAYS_PER_YEAR +  // plus whole years (in days) ...
-                leapDaysBeforeYear(year) -               // ... plus leap days
+        return (dayOfYear - 1) + // Days into the current year
+                (year - baseYear) * TDS.DAYS_PER_YEAR + // plus whole years (in days) ...
+                leapDaysBeforeYear(year) - // ... plus leap days
                 leapDaysBeforeYear(baseYear);
     }
 
     /**
-     * Returns the number of leap days that have occurred between January 1, 1AD and January 1 of the specified year, assuming a Proleptic Gregorian
-     * Calendar
+     * Returns the number of leap days that have occurred between January 1, 1AD and January 1 of the specified year,
+     * assuming a Proleptic Gregorian Calendar
      */
     private static int leapDaysBeforeYear(int year) {
         assert year >= 1;
@@ -1125,15 +1342,15 @@ final class DDC {
 
         // Convert to unscaled integer value, then compare with maxRPCDecimalValue.
         // NOTE: Handle negative scale as a special case for JDK 1.5 and later VMs.
-        BigInteger bi = (bigDecimalValue.scale() < 0) ? bigDecimalValue.setScale(0).unscaledValue() : bigDecimalValue.unscaledValue();
+        BigInteger bi = (bigDecimalValue.scale() < 0) ? bigDecimalValue.setScale(0).unscaledValue()
+                                                      : bigDecimalValue.unscaledValue();
         if (bigDecimalValue.signum() < 0)
             bi = bi.negate();
         return (bi.compareTo(maxRPCDecimalValue) > 0);
     }
 
     // Converts a Reader to a String.
-    static String convertReaderToString(Reader reader,
-            int readerLength) throws SQLServerException {
+    static String convertReaderToString(Reader reader, int readerLength) throws SQLServerException {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == readerLength || readerLength >= 0;
 
         // Optimize simple cases.
@@ -1145,13 +1362,15 @@ final class DDC {
         try {
             // Set up a StringBuilder big enough to hold the Reader value. If we weren't told the size of
             // the value then start with a "reasonable" guess StringBuilder size. If necessary, the StringBuilder
-            // will grow automatically to accomodate arbitrary amounts of data.
-            StringBuilder sb = new StringBuilder((DataTypes.UNKNOWN_STREAM_LENGTH != readerLength) ? readerLength : 4000);
+            // will grow automatically to accommodate arbitrary amounts of data.
+            StringBuilder sb = new StringBuilder(
+                    (DataTypes.UNKNOWN_STREAM_LENGTH != readerLength) ? readerLength : 4000);
 
             // Set up the buffer into which blocks of characters are read from the Reader. This buffer
             // should be no larger than the Reader value's size (if known). For known very large values,
             // limit the buffer's size to reduce this function's memory requirements.
-            char charArray[] = new char[(DataTypes.UNKNOWN_STREAM_LENGTH != readerLength && readerLength < 4000) ? readerLength : 4000];
+            char charArray[] = new char[(DataTypes.UNKNOWN_STREAM_LENGTH != readerLength
+                    && readerLength < 4000) ? readerLength : 4000];
 
             // Loop and read characters, chunk into StringBuilder until EOS.
             int readChars;
@@ -1168,8 +1387,7 @@ final class DDC {
             }
 
             return sb.toString();
-        }
-        catch (IOException ioEx) {
+        } catch (IOException ioEx) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
             Object[] msgArgs = {ioEx.toString()};
             SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
@@ -1180,11 +1398,12 @@ final class DDC {
     }
 }
 
+
 /**
  * InputStream implementation that wraps a contained InputStream, filtering it for 7-bit ASCII characters.
  *
- * The wrapped input stream must supply byte values from a SBCS character set whose first 128 entries match the 7-bit US-ASCII character set. Values
- * that lie outside of the 7-bit US-ASCII range are translated to the '?' character.
+ * The wrapped input stream must supply byte values from a SBCS character set whose first 128 entries match the 7-bit
+ * US-ASCII character set. Values that lie outside of the 7-bit US-ASCII range are translated to the '?' character.
  */
 final class AsciiFilteredInputStream extends InputStream {
     private final InputStream containedStream;
@@ -1237,9 +1456,7 @@ final class AsciiFilteredInputStream extends InputStream {
         return bytesRead;
     }
 
-    public int read(byte b[],
-            int offset,
-            int maxBytes) throws IOException {
+    public int read(byte b[], int offset, int maxBytes) throws IOException {
         int bytesRead = containedStream.read(b, offset, maxBytes);
         if (bytesRead > 0) {
             assert offset + bytesRead <= b.length;
@@ -1261,6 +1478,7 @@ final class AsciiFilteredInputStream extends InputStream {
         containedStream.reset();
     }
 }
+
 
 /**
  * InputStream implementation that wraps a contained InputStream, filtering it for 7-bit ASCII characters from UNICODE.
@@ -1295,7 +1513,8 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
 
     public int available() throws IOException {
         // from the JDBC spec
-        // Note: A stream may return 0 when the method InputStream.available is called whether there is data available or not.
+        // Note: A stream may return 0 when the method InputStream.available is called whether there is data available
+        // or not.
         // Reader does not give us available data.
         return 0;
     }
@@ -1311,9 +1530,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         return read(b, 0, b.length);
     }
 
-    public int read(byte b[],
-            int offset,
-            int maxBytes) throws IOException {
+    public int read(byte b[], int offset, int maxBytes) throws IOException {
         char tempBufferToHoldCharDataForConversion[] = new char[maxBytes];
         int charsRead = containedReader.read(tempBufferToHoldCharDataForConversion);
 
@@ -1333,11 +1550,10 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
     public void mark(int readLimit) {
         try {
             containedReader.mark(readLimit);
-        }
-        catch (IOException e) {
-            // unfortunately inputstream mark does not throw an exception so we have to eat any exception from the reader here
+        } catch (IOException e) {
+            // unfortunately inputstream mark does not throw an exception so we have to eat any exception from the
+            // reader here
             // likely to be a bug in the original InputStream spec.
-            return;
         }
     }
 
@@ -1345,6 +1561,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         containedReader.reset();
     }
 }
+
 
 // Helper class to hold + pass around stream/reader setter arguments.
 final class StreamSetterArgs {
@@ -1364,12 +1581,12 @@ final class StreamSetterArgs {
 
     final StreamType streamType;
 
-    StreamSetterArgs(StreamType streamType,
-            long length) {
+    StreamSetterArgs(StreamType streamType, long length) {
         this.streamType = streamType;
         this.length = length;
     }
 }
+
 
 // Helper class to hold + pass around InputStream getter arguments.
 final class InputStreamGetterArgs {
@@ -1384,10 +1601,7 @@ final class InputStreamGetterArgs {
         return defaultArgs;
     }
 
-    InputStreamGetterArgs(StreamType streamType,
-            boolean isAdaptive,
-            boolean isStreaming,
-            String logContext) {
+    InputStreamGetterArgs(StreamType streamType, boolean isAdaptive, boolean isStreaming, String logContext) {
         this.streamType = streamType;
         this.isAdaptive = isAdaptive;
         this.isStreaming = isStreaming;

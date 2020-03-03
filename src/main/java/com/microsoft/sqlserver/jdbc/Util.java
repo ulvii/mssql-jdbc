@@ -1,13 +1,11 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -16,25 +14,24 @@ import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
+
 /**
  * Various driver utilities.
  *
  */
-
 final class Util {
     final static String SYSTEM_SPEC_VERSION = System.getProperty("java.specification.version");
     final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
     final static String WSIDNotAvailable = ""; // default string when WSID is not available
 
-    final static String ActivityIdTraceProperty = "com.microsoft.sqlserver.jdbc.traceactivity";
+    final static String ACTIVITY_ID_TRACE_PROPERTY = "com.microsoft.sqlserver.jdbc.traceactivity";
 
     // The JRE is identified by the string below so that the driver can make
     // any vendor or version specific decisions
@@ -44,7 +41,11 @@ final class Util {
         return SYSTEM_JRE.startsWith("IBM");
     }
 
-    static final Boolean isCharType(int jdbcType) {
+    static String getJVMArchOnWindows() {
+        return System.getProperty("os.arch").contains("64") ? "x64" : "x86";
+    }
+
+    static final boolean isCharType(int jdbcType) {
         switch (jdbcType) {
             case java.sql.Types.CHAR:
             case java.sql.Types.NCHAR:
@@ -99,13 +100,12 @@ final class Util {
      * Read a short int from a byte stream
      * 
      * @param data
-     *            the databytes
+     *        the databytes
      * @param nOffset
-     *            offset to read from
+     *        offset to read from
      * @return the value
      */
-    /* L0 */ static short readShort(byte data[],
-            int nOffset) {
+    /* L0 */ static short readShort(byte data[], int nOffset) {
         return (short) ((data[nOffset] & 0xff) | ((data[nOffset + 1] & 0xff) << 8));
     }
 
@@ -113,31 +113,25 @@ final class Util {
      * Read an unsigned short int (16 bits) from a byte stream
      * 
      * @param data
-     *            the databytes
+     *        the databytes
      * @param nOffset
-     *            offset to read from
+     *        offset to read from
      * @return the value
      */
-    /* L0 */ static int readUnsignedShort(byte data[],
-            int nOffset) {
+    /* L0 */ static int readUnsignedShort(byte data[], int nOffset) {
         return ((data[nOffset] & 0xff) | ((data[nOffset + 1] & 0xff) << 8));
     }
 
-    static int readUnsignedShortBigEndian(byte data[],
-            int nOffset) {
+    static int readUnsignedShortBigEndian(byte data[], int nOffset) {
         return ((data[nOffset] & 0xFF) << 8) | (data[nOffset + 1] & 0xFF);
     }
 
-    static void writeShort(short value,
-            byte valueBytes[],
-            int offset) {
+    static void writeShort(short value, byte valueBytes[], int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 0) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 8) & 0xFF);
     }
 
-    static void writeShortBigEndian(short value,
-            byte valueBytes[],
-            int offset) {
+    static void writeShortBigEndian(short value, byte valueBytes[], int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 8) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 0) & 0xFF);
     }
@@ -146,13 +140,12 @@ final class Util {
      * Read an int from a byte stream
      * 
      * @param data
-     *            the databytes
+     *        the databytes
      * @param nOffset
-     *            offset to read from
+     *        offset to read from
      * @return the value
      */
-    /* L0 */ static int readInt(byte data[],
-            int nOffset) {
+    /* L0 */ static int readInt(byte data[], int nOffset) {
         int b1 = ((int) data[nOffset + 0] & 0xff);
         int b2 = ((int) data[nOffset + 1] & 0xff) << 8;
         int b3 = ((int) data[nOffset + 2] & 0xff) << 16;
@@ -160,33 +153,26 @@ final class Util {
         return b4 | b3 | b2 | b1;
     }
 
-    static int readIntBigEndian(byte data[],
-            int nOffset) {
-        return ((data[nOffset + 3] & 0xFF) << 0) | ((data[nOffset + 2] & 0xFF) << 8) | ((data[nOffset + 1] & 0xFF) << 16)
-                | ((data[nOffset + 0] & 0xFF) << 24);
+    static int readIntBigEndian(byte data[], int nOffset) {
+        return ((data[nOffset + 3] & 0xFF) << 0) | ((data[nOffset + 2] & 0xFF) << 8)
+                | ((data[nOffset + 1] & 0xFF) << 16) | ((data[nOffset + 0] & 0xFF) << 24);
     }
 
-    static void writeInt(int value,
-            byte valueBytes[],
-            int offset) {
+    static void writeInt(int value, byte valueBytes[], int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 0) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 8) & 0xFF);
         valueBytes[offset + 2] = (byte) ((value >> 16) & 0xFF);
         valueBytes[offset + 3] = (byte) ((value >> 24) & 0xFF);
     }
 
-    static void writeIntBigEndian(int value,
-            byte valueBytes[],
-            int offset) {
+    static void writeIntBigEndian(int value, byte valueBytes[], int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 24) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 16) & 0xFF);
         valueBytes[offset + 2] = (byte) ((value >> 8) & 0xFF);
         valueBytes[offset + 3] = (byte) ((value >> 0) & 0xFF);
     }
 
-    static void writeLongBigEndian(long value,
-            byte valueBytes[],
-            int offset) {
+    static void writeLongBigEndian(long value, byte valueBytes[], int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 56) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 48) & 0xFF);
         valueBytes[offset + 2] = (byte) ((value >> 40) & 0xFF);
@@ -197,9 +183,7 @@ final class Util {
         valueBytes[offset + 7] = (byte) ((value >> 0) & 0xFF);
     }
 
-    static BigDecimal readBigDecimal(byte valueBytes[],
-            int valueLength,
-            int scale) {
+    static BigDecimal readBigDecimal(byte valueBytes[], int valueLength, int scale) {
         int sign = (0 == valueBytes[0]) ? -1 : 1;
         byte[] magnitude = new byte[valueLength - 1];
         for (int i = 1; i <= magnitude.length; i++)
@@ -211,32 +195,49 @@ final class Util {
      * Reads a long value from byte array.
      * 
      * @param data
-     *            the byte array.
+     *        the byte array.
      * @param nOffset
-     *            the offset into byte array to start reading.
+     *        the offset into byte array to start reading.
      * @return long value as read from bytes.
      */
-    /* L0 */static long readLong(byte data[],
-            int nOffset) {
-        long v = 0;
-        for (int i = 7; i > 0; i--) {
-            v += (long) (data[nOffset + i] & 0xff);
-            v <<= 8;
-        }
-        return v + (long) (data[nOffset] & 0xff);
+    /* L0 */static long readLong(byte data[], int nOffset) {
+        return ((long) (data[nOffset + 7] & 0xff) << 56) | ((long) (data[nOffset + 6] & 0xff) << 48)
+                | ((long) (data[nOffset + 5] & 0xff) << 40) | ((long) (data[nOffset + 4] & 0xff) << 32)
+                | ((long) (data[nOffset + 3] & 0xff) << 24) | ((long) (data[nOffset + 2] & 0xff) << 16)
+                | ((long) (data[nOffset + 1] & 0xff) << 8) | ((long) (data[nOffset] & 0xff));
+    }
+
+    /**
+     * Writes a long to byte array.
+     *
+     * @param value
+     *        long value to write.
+     * @param valueBytes
+     *        the byte array.
+     * @param offset
+     *        the offset inside byte array.
+     */
+    static void writeLong(long value, byte valueBytes[], int offset) {
+        valueBytes[offset++] = (byte) ((value) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 8) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 16) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 24) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 32) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 40) & 0xFF);
+        valueBytes[offset++] = (byte) ((value >> 48) & 0xFF);
+        valueBytes[offset] = (byte) ((value >> 56) & 0xFF);
     }
 
     /**
      * Parse a JDBC URL into a set of properties.
      * 
      * @param url
-     *            the JDBC URL
+     *        the JDBC URL
      * @param logger
      * @return the properties
      * @throws SQLServerException
      */
-    /* L0 */ static Properties parseUrl(String url,
-            Logger logger) throws SQLServerException {
+    /* L0 */ static Properties parseUrl(String url, Logger logger) throws SQLServerException {
         Properties p = new Properties();
         String tmpUrl = url;
         String sPrefix = "jdbc:sqlserver://";
@@ -244,7 +245,7 @@ final class Util {
         String name = "";
         String value = "";
         StringBuilder builder;
-        
+
         if (!tmpUrl.startsWith(sPrefix))
             return null;
 
@@ -272,8 +273,7 @@ final class Util {
                     if (ch == ';') {
                         // done immediately
                         state = inName;
-                    }
-                    else {
+                    } else {
                         builder = new StringBuilder();
                         builder.append(result);
                         builder.append(ch);
@@ -301,8 +301,7 @@ final class Util {
                             state = inPort;
                         else
                             state = inInstanceName;
-                    }
-                    else {
+                    } else {
                         builder = new StringBuilder();
                         builder.append(result);
                         builder.append(ch);
@@ -321,8 +320,7 @@ final class Util {
                         p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
                         result = "";
                         state = inName;
-                    }
-                    else {
+                    } else {
                         builder = new StringBuilder();
                         builder.append(result);
                         builder.append(ch);
@@ -345,8 +343,7 @@ final class Util {
                             state = inName;
                         else
                             state = inPort;
-                    }
-                    else {
+                    } else {
                         builder = new StringBuilder();
                         builder.append(result);
                         builder.append(ch);
@@ -360,20 +357,18 @@ final class Util {
                         // name is never escaped!
                         name = name.trim();
                         if (name.length() <= 0) {
-                            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_errorConnectionString"), null,
-                                    true);
+                            SQLServerException.makeFromDriverError(null, null,
+                                    SQLServerException.getErrString("R_errorConnectionString"), null, true);
                         }
                         state = inValue;
-                    }
-                    else if (ch == ';') {
+                    } else if (ch == ';') {
                         name = name.trim();
                         if (name.length() > 0) {
-                            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_errorConnectionString"), null,
-                                    true);
+                            SQLServerException.makeFromDriverError(null, null,
+                                    SQLServerException.getErrString("R_errorConnectionString"), null, true);
                         }
                         // same state
-                    }
-                    else {
+                    } else {
                         builder = new StringBuilder();
                         builder.append(name);
                         builder.append(ch);
@@ -389,11 +384,11 @@ final class Util {
                         name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
-                                if (false == name.equals(SQLServerDriverStringProperty.USER.toString())) {
-                                    if (!name.toLowerCase().contains("password")) {
+                                if (!name.equals(SQLServerDriverStringProperty.USER.toString())) {
+                                    if (!name.toLowerCase(Locale.ENGLISH).contains("password")
+                                            && !name.toLowerCase(Locale.ENGLISH).contains("keystoresecret")) {
                                         logger.fine("Property:" + name + " Value:" + value);
-                                    }
-                                    else {
+                                    } else {
                                         logger.fine("Property:" + name);
                                     }
                                 }
@@ -404,16 +399,14 @@ final class Util {
                         value = "";
                         state = inName;
 
-                    }
-                    else if (ch == '{') {
+                    } else if (ch == '{') {
                         state = inEscapedValueStart;
                         value = value.trim();
                         if (value.length() > 0) {
-                            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_errorConnectionString"), null,
-                                    true);
+                            SQLServerException.makeFromDriverError(null, null,
+                                    SQLServerException.getErrString("R_errorConnectionString"), null, true);
                         }
-                    }
-                    else {
+                    } else {
                         builder = new StringBuilder();
                         builder.append(value);
                         builder.append(ch);
@@ -428,8 +421,8 @@ final class Util {
                         name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                         if (null != name) {
                             if (logger.isLoggable(Level.FINE)) {
-                                if ((false == name.equals(SQLServerDriverStringProperty.USER.toString()))
-                                        && (false == name.equals(SQLServerDriverStringProperty.PASSWORD.toString())))
+                                if (!name.equals(SQLServerDriverStringProperty.USER.toString())
+                                        && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))
                                     logger.fine("Property:" + name + " Value:" + value);
                             }
                             p.put(name, value);
@@ -440,8 +433,7 @@ final class Util {
                         // to eat the spaces until the ; potentially we could do without the state but
                         // it would not be clean
                         state = inEscapedValueEnd;
-                    }
-                    else {
+                    } else {
                         builder = new StringBuilder();
                         builder.append(value);
                         builder.append(ch);
@@ -454,10 +446,10 @@ final class Util {
                     if (ch == ';') // eat space chars till ; anything else is an error
                     {
                         state = inName;
-                    }
-                    else if (ch != ' ') {
+                    } else if (ch != ' ') {
                         // error if the chars are not space
-                        SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_errorConnectionString"), null, true);
+                        SQLServerException.makeFromDriverError(null, null,
+                                SQLServerException.getErrString("R_errorConnectionString"), null, true);
                     }
                     break;
                 }
@@ -499,9 +491,9 @@ final class Util {
                 name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                 if (null != name) {
                     if (logger.isLoggable(Level.FINE)) {
-                        if ((false == name.equals(SQLServerDriverStringProperty.USER.toString()))
-                                && (false == name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))
-                                && (false == name.equals(SQLServerDriverStringProperty.KEY_STORE_SECRET.toString())))
+                        if (!name.equals(SQLServerDriverStringProperty.USER.toString())
+                                && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString())
+                                && !name.equals(SQLServerDriverStringProperty.KEY_STORE_SECRET.toString()))
                             logger.fine("Property:" + name + " Value:" + value);
                     }
                     p.put(name, value);
@@ -515,20 +507,22 @@ final class Util {
             case inName: {
                 name = name.trim();
                 if (name.length() > 0) {
-                    SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_errorConnectionString"), null, true);
+                    SQLServerException.makeFromDriverError(null, null,
+                            SQLServerException.getErrString("R_errorConnectionString"), null, true);
                 }
 
                 break;
             }
             default:
-                SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_errorConnectionString"), null, true);
+                SQLServerException.makeFromDriverError(null, null,
+                        SQLServerException.getErrString("R_errorConnectionString"), null, true);
         }
         return p;
     }
 
     /**
-     * Accepts a SQL identifier (such as a column name or table name) and escapes the identifier using SQL Server bracket escaping rules. Assumes that
-     * the incoming identifier is unescaped.
+     * Accepts a SQL identifier (such as a column name or table name) and escapes the identifier using SQL Server
+     * bracket escaping rules. Assumes that the incoming identifier is unescaped.
      * 
      * @inID input identifier to escape.
      * @return the escaped value.
@@ -558,27 +552,20 @@ final class Util {
         return outID.toString();
     }
 
-    static void checkDuplicateColumnName(String columnName,
-            Map<Integer, ?> columnMetadata) throws SQLServerException {
-        if (columnMetadata.get(0) instanceof SQLServerMetaData) {
-            for (Entry<Integer, ?> entry : columnMetadata.entrySet()) {
-                SQLServerMetaData value = (SQLServerMetaData) entry.getValue();
-                if (value.columnName.equals(columnName)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-                    Object[] msgArgs = {columnName};
-                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-                }
-            }
-        }
-        else if (columnMetadata.get(0) instanceof SQLServerDataColumn) {
-            for (Entry<Integer, ?> entry : columnMetadata.entrySet()) {
-                SQLServerDataColumn value = (SQLServerDataColumn) entry.getValue();
-                if (value.columnName.equals(columnName)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
-                    Object[] msgArgs = {columnName};
-                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-                }
-            }
+    /**
+     * Checks if duplicate columns exists, in O(n) time.
+     * 
+     * @param columnName
+     *        the name of the column
+     * @throws SQLServerException
+     *         when a duplicate column exists
+     */
+    static void checkDuplicateColumnName(String columnName, Set<String> columnNames) throws SQLServerException {
+        // columnList.add will return false if the same column name already exists
+        if (!columnNames.add(columnName)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPDuplicateColumnName"));
+            Object[] msgArgs = {columnName};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
     }
 
@@ -586,26 +573,24 @@ final class Util {
      * Reads a UNICODE string from byte buffer at offset (up to byteLength).
      * 
      * @param b
-     *            the buffer containing UNICODE bytes.
+     *        the buffer containing UNICODE bytes.
      * @param offset
-     *            - the offset into b where the UNICODE string starts.
+     *        - the offset into b where the UNICODE string starts.
      * @param byteLength
-     *            - the length in bytes of the UNICODE string.
+     *        - the length in bytes of the UNICODE string.
      * @param conn
-     *            - the SQLServerConnection object.
+     *        - the SQLServerConnection object.
      * @return new String with UNICODE data inside.
      */
-    static String readUnicodeString(byte[] b,
-            int offset,
-            int byteLength,
+    static String readUnicodeString(byte[] b, int offset, int byteLength,
             SQLServerConnection conn) throws SQLServerException {
         try {
             return new String(b, offset, byteLength, Encoding.UNICODE.charset());
-        }
-        catch (IndexOutOfBoundsException ex) {
-            String txtMsg = SQLServerException.checkAndAppendClientConnId(SQLServerException.getErrString("R_stringReadError"), conn);
+        } catch (IndexOutOfBoundsException ex) {
+            String txtMsg = SQLServerException
+                    .checkAndAppendClientConnId(SQLServerException.getErrString("R_stringReadError"), conn);
             MessageFormat form = new MessageFormat(txtMsg);
-            Object[] msgArgs = {new Integer(offset)};
+            Object[] msgArgs = {offset};
             // Re-throw SQLServerException if conversion fails.
             throw new SQLServerException(form.format(msgArgs), null, 0, ex);
         }
@@ -617,7 +602,7 @@ final class Util {
      * Converts byte array to a string representation of hex bytes for display purposes.
      * 
      * @param b
-     *            the source buffer.
+     *        the source buffer.
      * @return "hexized" string representation of bytes.
      */
     static String byteToHexDisplayString(byte[] b) {
@@ -626,8 +611,8 @@ final class Util {
         int hexVal;
         StringBuilder sb = new StringBuilder(b.length * 2 + 2);
         sb.append("0x");
-        for (int i = 0; i < b.length; i++) {
-            hexVal = b[i] & 0xFF;
+        for (byte aB : b) {
+            hexVal = aB & 0xFF;
             sb.append(hexChars[(hexVal & 0xF0) >> 4]);
             sb.append(hexChars[(hexVal & 0x0F)]);
         }
@@ -638,11 +623,10 @@ final class Util {
      * Converts byte array to a string representation of hex bytes.
      * 
      * @param b
-     *            the source buffer.
+     *        the source buffer.
      * @return "hexized" string representation of bytes.
      */
-    static String bytesToHexString(byte[] b,
-            int length) {
+    static String bytesToHexString(byte[] b, int length) {
         StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
             int hexVal = b[i] & 0xFF;
@@ -656,8 +640,9 @@ final class Util {
      * Looks up local hostname of client machine.
      * 
      * @exception UnknownHostException
-     *                if local hostname is not found.
-     * @return hostname string or ip of host if hostname cannot be resolved. If neither hostname or ip found returns "" per spec.
+     *            if local hostname is not found.
+     * @return hostname string or ip of host if hostname cannot be resolved. If neither hostname or ip found returns ""
+     *         per spec.
      */
     static String lookupHostName() {
 
@@ -672,8 +657,7 @@ final class Util {
                 if (null != value && value.length() > 0)
                     return value;
             }
-        }
-        catch (UnknownHostException e) {
+        } catch (UnknownHostException e) {
             return WSIDNotAvailable;
         }
         // If hostname not found, return standard "" string.
@@ -714,6 +698,46 @@ final class Util {
         return buffer;
     }
 
+    static final UUID readGUIDtoUUID(byte[] inputGUID) throws SQLServerException {
+        if (inputGUID.length != 16) {
+            throw new SQLServerException("guid length must be 16", null);
+        }
+
+        // For the first three fields, UUID uses network byte order,
+        // Guid uses native byte order. So we need to reverse
+        // the first three fields before creating a UUID.
+
+        byte tmpByte;
+
+        // Reverse the first 4 bytes
+        tmpByte = inputGUID[0];
+        inputGUID[0] = inputGUID[3];
+        inputGUID[3] = tmpByte;
+        tmpByte = inputGUID[1];
+        inputGUID[1] = inputGUID[2];
+        inputGUID[2] = tmpByte;
+
+        // Reverse the 5th and the 6th
+        tmpByte = inputGUID[4];
+        inputGUID[4] = inputGUID[5];
+        inputGUID[5] = tmpByte;
+
+        // Reverse the 7th and the 8th
+        tmpByte = inputGUID[6];
+        inputGUID[6] = inputGUID[7];
+        inputGUID[7] = tmpByte;
+
+        long msb = 0L;
+        for (int i = 0; i < 8; i++) {
+            msb = msb << 8 | ((long) inputGUID[i] & 0xFFL);
+        }
+        long lsb = 0L;
+        for (int i = 8; i < 16; i++) {
+            lsb = lsb << 8 | ((long) inputGUID[i] & 0xFFL);
+        }
+        return new UUID(msb, lsb);
+    }
+
     static final String readGUID(byte[] inputGUID) throws SQLServerException {
         String guidTemplate = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
         byte guid[] = inputGUID;
@@ -747,17 +771,15 @@ final class Util {
         return sb.toString();
     }
 
-    static boolean IsActivityTraceOn() {
+    static boolean isActivityTraceOn() {
         LogManager lm = LogManager.getLogManager();
-        String activityTrace = lm.getProperty(ActivityIdTraceProperty);
-        if ("on".equalsIgnoreCase(activityTrace))
-            return true;
-        else
-            return false;
+        String activityTrace = lm.getProperty(ACTIVITY_ID_TRACE_PROPERTY);
+        return ("on".equalsIgnoreCase(activityTrace));
     }
 
     /**
-     * Determines if a column value should be transparently decrypted (based on SQLServerStatement and the connection string settings).
+     * Determines if a column value should be transparently decrypted (based on SQLServerStatement and the connection
+     * string settings).
      * 
      * @return true if the value should be transparently decrypted, false otherwise.
      */
@@ -778,7 +800,8 @@ final class Util {
     }
 
     /**
-     * Determines if parameters should be transparently encrypted (based on SQLServerStatement and the connection string settings).
+     * Determines if parameters should be transparently encrypted (based on SQLServerStatement and the connection string
+     * settings).
      * 
      * @return true if the value should be transparently encrypted, false otherwise.
      */
@@ -798,8 +821,7 @@ final class Util {
         }
     }
 
-    static void validateMoneyRange(BigDecimal bd,
-            JDBCType jdbcType) throws SQLServerException {
+    static void validateMoneyRange(BigDecimal bd, JDBCType jdbcType) throws SQLServerException {
         if (null == bd)
             return;
 
@@ -810,9 +832,12 @@ final class Util {
                 }
                 break;
             case SMALLMONEY:
-                if ((1 != bd.compareTo(SSType.MAX_VALUE_SMALLMONEY)) && (-1 != bd.compareTo(SSType.MIN_VALUE_SMALLMONEY))) {
+                if ((1 != bd.compareTo(SSType.MAX_VALUE_SMALLMONEY))
+                        && (-1 != bd.compareTo(SSType.MIN_VALUE_SMALLMONEY))) {
                     return;
                 }
+                break;
+            default:
                 break;
         }
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
@@ -820,10 +845,7 @@ final class Util {
         throw new SQLServerException(form.format(msgArgs), null);
     }
 
-    static int getValueLengthBaseOnJavaType(Object value,
-            JavaType javaType,
-            Integer precision,
-            Integer scale,
+    static int getValueLengthBaseOnJavaType(Object value, JavaType javaType, Integer precision, Integer scale,
             JDBCType jdbcType) throws SQLServerException {
         switch (javaType) {
             // when the value of setObject() is null, the javaType stays
@@ -847,6 +869,8 @@ final class Util {
                         break;
                 }
                 break;
+            default:
+                break;
         }
 
         switch (javaType) {
@@ -854,36 +878,29 @@ final class Util {
                 if (JDBCType.GUID == jdbcType) {
                     String guidTemplate = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX";
                     return ((null == value) ? 0 : guidTemplate.length());
-                }
-                else if (JDBCType.TIMESTAMP == jdbcType || JDBCType.TIME == jdbcType || JDBCType.DATETIMEOFFSET == jdbcType) {
+                } else if (JDBCType.TIMESTAMP == jdbcType || JDBCType.TIME == jdbcType
+                        || JDBCType.DATETIMEOFFSET == jdbcType) {
                     return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
-                }
-                else if (JDBCType.BINARY == jdbcType || JDBCType.VARBINARY == jdbcType) {
+                } else if (JDBCType.BINARY == jdbcType || JDBCType.VARBINARY == jdbcType) {
                     return ((null == value) ? 0 : (ParameterUtils.HexToBin((String) value).length));
-                }
-                else {
+                } else {
                     return ((null == value) ? 0 : ((String) value).length());
                 }
-
             case BYTEARRAY:
                 return ((null == value) ? 0 : ((byte[]) value).length);
-
             case BIGDECIMAL:
                 int length;
-
                 if (null == precision) {
                     if (null == value) {
                         length = 0;
-                    }
-                    else {
+                    } else {
                         if (0 == ((BigDecimal) value).intValue()) {
                             String s = "" + value;
                             s = s.replaceAll("\\-", "");
                             if (s.startsWith("0.")) {
                                 // remove the leading zero, eg., for 0.32, the precision should be 2 and not 3
                                 s = s.replaceAll("0\\.", "");
-                            }
-                            else {
+                            } else {
                                 s = s.replaceAll("\\.", "");
                             }
                             length = s.length();
@@ -895,38 +912,33 @@ final class Util {
                             s = s.replaceAll("\\.", "");
                             s = s.replaceAll("\\-", "");
                             length = s.length();
-                        }
-                        else {
+                        } else {
                             length = ((BigDecimal) value).precision();
                         }
                     }
-                }
-                else {
+                } else {
                     length = precision;
                 }
-
                 return length;
-
             case TIMESTAMP:
             case TIME:
             case DATETIMEOFFSET:
                 return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
-                
             case CLOB:
                 return ((null == value) ? 0 : (DataTypes.NTEXT_MAX_CHARS * 2));
-
             case NCLOB:
             case READER:
                 return ((null == value) ? 0 : DataTypes.NTEXT_MAX_CHARS);
+            default:
+                return 0;
         }
-        return 0;
     }
 
     // If the access token is expiring within next 10 minutes, lets just re-create a token for this connection attempt.
-    // If the token is expiring within the next 45 mins, try to fetch a new token if there is no thread already doing it.
+    // If the token is expiring within the next 45 mins, try to fetch a new token if there is no thread already doing
+    // it.
     // If a thread is already doing the refresh, just use the existing token and proceed.
-    static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection) {
-        Date accessTokenExpireDate = connection.getAuthenticationResult().getExpiresOnDate();
+    static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection, Date accessTokenExpireDate) {
         Date now = new Date();
 
         // if the token's expiration is within the next 45 mins
@@ -936,44 +948,62 @@ final class Util {
             // within the next 10 mins
             if ((accessTokenExpireDate.getTime() - now.getTime()) < (10 * 60 * 1000)) {
                 return true;
-            }
-            else {
+            } else {
                 // check if another thread is already updating the access token
                 if (connection.attemptRefreshTokenLocked) {
                     return false;
-                }
-                else {
+                } else {
                     connection.attemptRefreshTokenLocked = true;
                     return true;
                 }
             }
         }
-
         return false;
     }
 
-    static final boolean use42Wrapper;
-    
+    static final boolean use43Wrapper;
+
     static {
-        boolean supportJDBC42 = true;
+        boolean supportJDBC43 = true;
         try {
-            DriverJDBCVersion.checkSupportsJDBC42();
-        }
-        catch (UnsupportedOperationException e) {
-            supportJDBC42 = false;
+            DriverJDBCVersion.checkSupportsJDBC43();
+        } catch (UnsupportedOperationException e) {
+            supportJDBC43 = false;
         }
 
         double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
 
-        use42Wrapper = supportJDBC42 && (1.8 <= jvmVersion);
+        use43Wrapper = supportJDBC43 && (9 <= jvmVersion);
     }
 
-    // if driver is for JDBC 42 and jvm version is 8 or higher, then always return as SQLServerPreparedStatement42,
-    // otherwise return SQLServerPreparedStatement
-    static boolean use42Wrapper() {
-        return use42Wrapper;
+    // if driver is for JDBC 43 and jvm version is 9 or higher, then always return as SQLServerConnection43,
+    // otherwise return SQLServerConnection
+    static boolean use43Wrapper() {
+        return use43Wrapper;
+    }
+
+    /**
+     * Escapes single quotes (') in object name to convert and pass it as String safely.
+     * 
+     * @param name
+     *        Object name to be passed as String
+     * @return Converted object name
+     */
+    static String escapeSingleQuotes(String name) {
+        return name.replace("'", "''");
+    }
+
+    static String convertInputStreamToString(java.io.InputStream is) throws IOException {
+        java.io.ByteArrayOutputStream result = new java.io.ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = is.read(buffer)) != -1) {
+            result.write(buffer, 0, length);
+        }
+        return result.toString();
     }
 }
+
 
 final class SQLIdentifier {
     // Component names default to empty string (rather than null) for consistency
@@ -1024,19 +1054,19 @@ final class SQLIdentifier {
         StringBuilder fullName = new StringBuilder(256);
 
         if (serverName.length() > 0)
-            fullName.append("[" + serverName + "].");
+            fullName.append("[").append(serverName).append("].");
 
         if (databaseName.length() > 0)
-            fullName.append("[" + databaseName + "].");
+            fullName.append("[").append(databaseName).append("].");
         else
             assert 0 == serverName.length();
 
         if (schemaName.length() > 0)
-            fullName.append("[" + schemaName + "].");
+            fullName.append("[").append(schemaName).append("].");
         else if (databaseName.length() > 0)
             fullName.append('.');
 
-        fullName.append("[" + objectName + "]");
+        fullName.append("[").append(objectName).append("]");
 
         return fullName.toString();
     }

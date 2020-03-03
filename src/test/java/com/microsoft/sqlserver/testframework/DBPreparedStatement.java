@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -12,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
 
 /**
  * 
@@ -30,6 +28,10 @@ public class DBPreparedStatement extends DBStatement {
     }
 
     /**
+     * set up internal PreparedStatement with query
+     * 
+     * @param query
+     * @return
      * @throws SQLException
      * 
      */
@@ -47,8 +49,7 @@ public class DBPreparedStatement extends DBStatement {
      * @return
      * @throws SQLException
      */
-    DBPreparedStatement prepareStatement(String query,
-            int resultSetType,
+    DBPreparedStatement prepareStatement(String query, int resultSetType,
             int resultSetConcurrency) throws SQLException {
         pstmt = ((Connection) parent().product()).prepareStatement(query, resultSetType, resultSetConcurrency);
         setInternal(pstmt);
@@ -66,8 +67,7 @@ public class DBPreparedStatement extends DBStatement {
      * @param targetObject
      * @throws SQLException
      */
-    public void setObject(int parameterIndex,
-            Object targetObject) throws SQLException {
+    public void setObject(int parameterIndex, Object targetObject) throws SQLException {
 
         ((PreparedStatement) product()).setObject(parameterIndex, targetObject);
     }
@@ -84,4 +84,22 @@ public class DBPreparedStatement extends DBStatement {
         return dbresultSet;
     }
 
+    /**
+     * populate table with values using prepared statement
+     * 
+     * @param table
+     * @return <code>true</code> if table is populated
+     */
+    public boolean populateTable(DBTable table) {
+        return table.populateTableWithPreparedStatement(this);
+    }
+
+    /**
+     * 
+     * @return
+     * @throws SQLException
+     */
+    public boolean execute() throws SQLException {
+        return pstmt.execute();
+    }
 }

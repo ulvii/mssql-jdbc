@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -11,6 +8,7 @@ package com.microsoft.sqlserver.testframework;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.JDBCType;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,11 +16,11 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.codec.binary.Hex;
-
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.VariableLengthType;
-import com.microsoft.sqlserver.testframework.util.RandomUtil;
+
 
 /**
  * This class holds data for Table.
@@ -32,6 +30,7 @@ public class DBTable extends AbstractSQLGenerator {
     public static final Logger log = Logger.getLogger("DBTable");
     String tableName;
     String escapedTableName;
+    String escapedQuotesTableName;
     String tableDefinition;
     List<DBColumn> columns;
     int totalColumns;
@@ -42,7 +41,7 @@ public class DBTable extends AbstractSQLGenerator {
      * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
      * 
      * @param autoGenerateSchema
-     *            <code>true</code> : generates schema with all available dataTypes in SqlType class
+     *        <code>true</code> : generates schema with all available dataTypes in SqlType class
      */
     public DBTable(boolean autoGenerateSchema) {
         this(autoGenerateSchema, false, false);
@@ -52,12 +51,11 @@ public class DBTable extends AbstractSQLGenerator {
      * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
      * 
      * @param autoGenerateSchema
-     *            <code>true</code>: generates schema with all available dataTypes in SqlType class
+     *        <code>true</code>: generates schema with all available dataTypes in SqlType class
      * @param unicode
-     *            <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
+     *        <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
      */
-    public DBTable(boolean autoGenerateSchema,
-            boolean unicode) {
+    public DBTable(boolean autoGenerateSchema, boolean unicode) {
         this(autoGenerateSchema, unicode, false);
     }
 
@@ -65,27 +63,25 @@ public class DBTable extends AbstractSQLGenerator {
      * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
      * 
      * @param autoGenerateSchema
-     *            <code>true</code>: generates schema with all available dataTypes in SqlType class
+     *        <code>true</code>: generates schema with all available dataTypes in SqlType class
      * @param unicode
-     *            <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
+     *        <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
      * @param alternateShcema
-     *            <code>true</code>: creates table with alternate schema
+     *        <code>true</code>: creates table with alternate schema
      */
-    public DBTable(boolean autoGenerateSchema,
-            boolean unicode,
-            boolean alternateSchema) {
+    public DBTable(boolean autoGenerateSchema, boolean unicode, boolean alternateSchema) {
 
         this.tableName = RandomUtil.getIdentifier("table");
         this.escapedTableName = escapeIdentifier(tableName);
+        this.escapedQuotesTableName = TestUtils.escapeSingleQuotes(escapedTableName);
         this.schema = new DBSchema(autoGenerateSchema, alternateSchema);
         if (autoGenerateSchema) {
             if (unicode)
                 addColumns(unicode);
             else
                 addColumns();
-        }
-        else {
-            this.columns = new ArrayList<DBColumn>();
+        } else {
+            this.columns = new ArrayList<>();
         }
         this.totalColumns = columns.size();
     }
@@ -98,6 +94,7 @@ public class DBTable extends AbstractSQLGenerator {
     private DBTable(DBTable sourceTable) {
         this.tableName = RandomUtil.getIdentifier("table");
         this.escapedTableName = escapeIdentifier(tableName);
+        this.escapedQuotesTableName = TestUtils.escapeSingleQuotes(escapedTableName);
         this.columns = sourceTable.columns;
         this.totalColumns = columns.size();
         this.schema = sourceTable.schema;
@@ -107,12 +104,17 @@ public class DBTable extends AbstractSQLGenerator {
      * adds a columns for each SQL type in DBSchema
      */
     private void addColumns() {
-        totalColumns = schema.getNumberOfSqlTypes();
-        columns = new ArrayList<DBColumn>(totalColumns);
+        totalColumns = schema.getNumberOfSqlTypes() + 1; // Add 1 column for RowId (Type Int)
+        columns = new ArrayList<>(totalColumns);
 
-        for (int i = 0; i < totalColumns; i++) {
-            SqlType sqlType = schema.getSqlType(i);
-            DBColumn column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType);
+        // Add RowID column
+        SqlType sqlType = schema.getSqlType(1); // Type SqlInt
+        DBColumn column = new DBColumn(RandomUtil.getIdentifier("RowID"), sqlType);
+        columns.add(column);
+
+        for (int i = 0; i < totalColumns - 1; i++) {
+            sqlType = schema.getSqlType(i);
+            column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType);
             columns.add(column);
         }
     }
@@ -121,12 +123,16 @@ public class DBTable extends AbstractSQLGenerator {
      * adds a columns for each SQL type in DBSchema
      */
     private void addColumns(boolean unicode) {
-        totalColumns = schema.getNumberOfSqlTypes();
-        columns = new ArrayList<DBColumn>(totalColumns);
+        totalColumns = schema.getNumberOfSqlTypes() + 1; // Add 1 column for RowId
+        columns = new ArrayList<>(totalColumns);
 
-        for (int i = 0; i < totalColumns; i++) {
-            SqlType sqlType = schema.getSqlType(i);
-            DBColumn column;
+        // Add RowID column
+        SqlType sqlType = schema.getSqlType(1); // Type SqlInt
+        DBColumn column = new DBColumn(RandomUtil.getIdentifier("RowID"), sqlType);
+        columns.add(column);
+
+        for (int i = 0; i < totalColumns - 1; i++) {
+            sqlType = schema.getSqlType(i);
             if (unicode)
                 column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()) + "ĀĂŎՖએДЕЖЗИЙਟਖਞ", sqlType);
             else
@@ -143,7 +149,7 @@ public class DBTable extends AbstractSQLGenerator {
     public String getTableName() {
         return tableName;
     }
-    
+
     public List<DBColumn> getColumns() {
         return this.columns;
     }
@@ -156,7 +162,16 @@ public class DBTable extends AbstractSQLGenerator {
     public String getEscapedTableName() {
         return escapedTableName;
     }
-    
+
+    /**
+     * gets escaped table name of the {@link DBTable} object to be used within single quotes
+     * 
+     * @return {@link String} escaped table name
+     */
+    public String getEscapedQuotesTableName() {
+        return escapedQuotesTableName;
+    }
+
     public String getDefinitionOfColumns() {
         return tableDefinition;
     }
@@ -172,7 +187,7 @@ public class DBTable extends AbstractSQLGenerator {
     /**
      * 
      * @param totalRows
-     *            set the number of rows in table, default value is 3
+     *        set the number of rows in table, default value is 3
      */
     public void setTotalRows(int totalRows) {
         this.totalRows = totalRows;
@@ -188,44 +203,41 @@ public class DBTable extends AbstractSQLGenerator {
             dropTable(dbstatement);
             String sql = createTableSql();
             return dbstatement.execute(sql);
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             fail(ex.getMessage());
         }
         return false;
     }
 
     String createTableSql() {
-        StringJoiner sb = new StringJoiner(SPACE_CHAR);
+        StringJoiner sb = new StringJoiner(Constants.SPACE_CHAR);
 
-        sb.add(CREATE_TABLE);
+        sb.add(Constants.CREATE_TABLE);
         sb.add(escapedTableName);
-        sb.add(OPEN_BRACKET);
+        sb.add(Constants.OPEN_BRACKET);
 
-        StringJoiner sbDefinition = new StringJoiner(SPACE_CHAR);
+        StringJoiner sbDefinition = new StringJoiner(Constants.SPACE_CHAR);
         for (int i = 0; i < totalColumns; i++) {
             DBColumn column = getColumn(i);
             sbDefinition.add(escapeIdentifier(column.getColumnName()));
             sbDefinition.add(column.getSqlType().getName());
             // add precision and scale
             if (VariableLengthType.Precision == column.getSqlType().getVariableLengthType()) {
-                sbDefinition.add(OPEN_BRACKET);
+                sbDefinition.add(Constants.OPEN_BRACKET);
                 sbDefinition.add("" + column.getSqlType().getPrecision());
-                sbDefinition.add(CLOSE_BRACKET);
-            }
-            else if (VariableLengthType.Scale == column.getSqlType().getVariableLengthType()) {
-                sbDefinition.add(OPEN_BRACKET);
+                sbDefinition.add(Constants.CLOSE_BRACKET);
+            } else if (VariableLengthType.Scale == column.getSqlType().getVariableLengthType()) {
+                sbDefinition.add(Constants.OPEN_BRACKET);
                 sbDefinition.add("" + column.getSqlType().getPrecision());
-                sbDefinition.add(COMMA);
+                sbDefinition.add(Constants.COMMA);
                 sbDefinition.add("" + column.getSqlType().getScale());
-                sbDefinition.add(CLOSE_BRACKET);
-            }
-            else if (VariableLengthType.ScaleOnly == column.getSqlType().getVariableLengthType()) {
-                sbDefinition.add(OPEN_BRACKET);
+                sbDefinition.add(Constants.CLOSE_BRACKET);
+            } else if (VariableLengthType.ScaleOnly == column.getSqlType().getVariableLengthType()) {
+                sbDefinition.add(Constants.OPEN_BRACKET);
                 sbDefinition.add("" + column.getSqlType().getScale());
-                sbDefinition.add(CLOSE_BRACKET);
+                sbDefinition.add(Constants.CLOSE_BRACKET);
             }
-            sbDefinition.add(COMMA);
+            sbDefinition.add(Constants.COMMA);
         }
         tableDefinition = sbDefinition.toString();
 
@@ -234,8 +246,8 @@ public class DBTable extends AbstractSQLGenerator {
         tableDefinition = tableDefinition.substring(0, indexOfLastComma);
 
         sb.add(tableDefinition);
-        
-        sb.add(CLOSE_BRACKET);
+
+        sb.add(Constants.CLOSE_BRACKET);
         return sb.toString();
     }
 
@@ -250,8 +262,56 @@ public class DBTable extends AbstractSQLGenerator {
             populateValues();
             String sql = populateTableSql();
             return dbstatement.execute(sql);
+        } catch (SQLException ex) {
+            fail(ex.getMessage());
         }
-        catch (SQLException ex) {
+        return false;
+    }
+
+    /**
+     * using prepared statement to populate table with values
+     * 
+     * @param dbstatement
+     * @return
+     */
+    boolean populateTableWithPreparedStatement(DBPreparedStatement dbPStmt) {
+        try {
+            populateValues();
+
+            // create the insertion query
+            StringJoiner sb = new StringJoiner(Constants.SPACE_CHAR);
+            sb.add("INSERT");
+            sb.add("INTO");
+            sb.add(escapedTableName);
+            sb.add("VALUES");
+            sb.add(Constants.OPEN_BRACKET);
+            for (int colNum = 0; colNum < totalColumns; colNum++) {
+                sb.add(Constants.QUESTION_MARK);
+
+                if (colNum < totalColumns - 1) {
+                    sb.add(Constants.COMMA);
+                }
+            }
+            sb.add(Constants.CLOSE_BRACKET);
+            String sql = sb.toString();
+
+            dbPStmt.prepareStatement(sql);
+
+            // insert data
+            for (int i = 0; i < totalRows; i++) {
+                for (int colNum = 0; colNum < totalColumns; colNum++) {
+                    if (passDataAsHex(colNum)) {
+                        ((PreparedStatement) dbPStmt.product()).setBytes(colNum + 1,
+                                ((byte[]) (getColumn(colNum).getRowValue(i))));
+                    } else {
+                        dbPStmt.setObject(colNum + 1, String.valueOf(getColumn(colNum).getRowValue(i)));
+                    }
+                }
+                dbPStmt.execute();
+            }
+
+            return true;
+        } catch (SQLException ex) {
             fail(ex.getMessage());
         }
         return false;
@@ -261,7 +321,10 @@ public class DBTable extends AbstractSQLGenerator {
         // generate values for all columns
         for (int i = 0; i < totalColumns; i++) {
             DBColumn column = getColumn(i);
-            column.populateValues(totalRows);
+            if (i == 0)
+                column.populateRowId(totalRows);
+            else
+                column.populateValues(totalRows);
         }
     }
 
@@ -271,6 +334,10 @@ public class DBTable extends AbstractSQLGenerator {
 
     public String getColumnName(int columnIndex) {
         return getColumn(columnIndex).getColumnName();
+    }
+
+    public String getEscapedColumnName(int columnIndex) {
+        return getColumn(columnIndex).getEscapedColumnName();
     }
 
     public int totalColumns() {
@@ -292,36 +359,32 @@ public class DBTable extends AbstractSQLGenerator {
      * @return query to create table
      */
     String populateTableSql() {
-        StringJoiner sb = new StringJoiner(SPACE_CHAR);
-
-        sb.add("INSERT");
-        sb.add("INTO");
-        sb.add(escapedTableName);
-        sb.add("VALUES");
+        StringJoiner sb = new StringJoiner(Constants.SPACE_CHAR);
 
         for (int i = 0; i < totalRows; i++) {
-            if (i != 0) {
-                sb.add(COMMA);
-            }
-            sb.add(OPEN_BRACKET);
+            sb.add("INSERT");
+            sb.add("INTO");
+            sb.add(escapedTableName);
+            sb.add("VALUES");
+
+            sb.add(Constants.OPEN_BRACKET);
             for (int colNum = 0; colNum < totalColumns; colNum++) {
 
                 // TODO: consider how to enclose data in case of preparedStatemets
                 if (passDataAsString(colNum)) {
                     sb.add("'" + String.valueOf(getColumn(colNum).getRowValue(i)) + "'");
-                }
-                else if (passDataAsHex(colNum)) {
-                    sb.add("0X" + Hex.encodeHexString((byte[]) (getColumn(colNum).getRowValue(i))));
-                }
-                else {
+                } else if (passDataAsHex(colNum)) {
+                    sb.add("0X" + byteArrayToHex((byte[]) (getColumn(colNum).getRowValue(i))));
+                } else {
                     sb.add(String.valueOf(getColumn(colNum).getRowValue(i)));
                 }
 
                 if (colNum < totalColumns - 1) {
-                    sb.add(COMMA);
+                    sb.add(Constants.COMMA);
                 }
             }
-            sb.add(CLOSE_BRACKET);
+            sb.add(Constants.CLOSE_BRACKET);
+            sb.add(Constants.SEMI_COLON);
         }
 
         return (sb.toString());
@@ -340,12 +403,10 @@ public class DBTable extends AbstractSQLGenerator {
             result = dbstatement.execute(sql);
             if (log.isLoggable(Level.FINE)) {
                 log.fine("Table Deleted " + tableName);
-            }
-            else {
+            } else {
                 log.fine("Table did not exist : " + tableName);
             }
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             fail(ex.getMessage());
         }
         return result;
@@ -355,13 +416,13 @@ public class DBTable extends AbstractSQLGenerator {
      * This will give you query for Drop Table.
      */
     String dropTableSql() {
-        StringJoiner sb = new StringJoiner(SPACE_CHAR);
+        StringJoiner sb = new StringJoiner(Constants.SPACE_CHAR);
         sb.add("IF OBJECT_ID");
-        sb.add(OPEN_BRACKET);
+        sb.add(Constants.OPEN_BRACKET);
         sb.add(wrapName(tableName));
         sb.add(",");
         sb.add(wrapName("U"));
-        sb.add(CLOSE_BRACKET);
+        sb.add(Constants.CLOSE_BRACKET);
         sb.add("IS NOT NULL");
         sb.add("DROP TABLE");
         sb.add(escapedTableName); // for drop table no need to wrap.
@@ -395,8 +456,7 @@ public class DBTable extends AbstractSQLGenerator {
      * @param rowIndex
      * @return
      */
-    public Object getRowData(int colIndex,
-            int rowIndex) {
+    public Object getRowData(int colIndex, int rowIndex) {
         return columns.get(colIndex).getRowValue(rowIndex);
     }
 
@@ -406,11 +466,10 @@ public class DBTable extends AbstractSQLGenerator {
      * @return <code>true</code> if value can be passed as String for the column
      */
     boolean passDataAsString(int colNum) {
-        return (JDBCType.CHAR == getColumn(colNum).getJdbctype() || JDBCType.VARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.NCHAR == getColumn(colNum).getJdbctype() || JDBCType.NVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.TIMESTAMP == getColumn(colNum).getJdbctype() || JDBCType.DATE == getColumn(colNum).getJdbctype()
-                || JDBCType.TIME == getColumn(colNum).getJdbctype() || JDBCType.LONGVARCHAR == getColumn(colNum).getJdbctype()
-                || JDBCType.LONGNVARCHAR == getColumn(colNum).getJdbctype());
+        JDBCType jt = getColumn(colNum).getJdbctype();
+        return (JDBCType.CHAR == jt || JDBCType.VARCHAR == jt || JDBCType.NCHAR == jt || JDBCType.NVARCHAR == jt
+                || JDBCType.TIMESTAMP == jt || JDBCType.DATE == jt || JDBCType.TIME == jt || JDBCType.LONGVARCHAR == jt
+                || JDBCType.LONGNVARCHAR == jt);
     }
 
     /**
@@ -420,7 +479,14 @@ public class DBTable extends AbstractSQLGenerator {
      */
 
     boolean passDataAsHex(int colNum) {
-        return (JDBCType.BINARY == getColumn(colNum).getJdbctype() || JDBCType.VARBINARY == getColumn(colNum).getJdbctype()
-                || JDBCType.LONGVARBINARY == getColumn(colNum).getJdbctype());
+        JDBCType jt = getColumn(colNum).getJdbctype();
+        return (JDBCType.BINARY == jt || JDBCType.VARBINARY == jt || JDBCType.LONGVARBINARY == jt);
+    }
+
+    private String byteArrayToHex(byte[] a) {
+        StringBuilder sb = new StringBuilder(a.length * 2);
+        for (byte b : a)
+            sb.append(String.format("%02x", b));
+        return sb.toString();
     }
 }

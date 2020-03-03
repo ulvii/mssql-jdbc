@@ -1,14 +1,12 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
 
 import java.util.ArrayList;
+
 
 /**
  * Each sqlType has a list of coercions associate with it
@@ -22,8 +20,7 @@ public class DBItems {
     }
 
     public DBCoercion find(Class type) {
-        for (int i = 0; i < coercionsList.size(); i++) {
-            DBCoercion item = coercionsList.get(i);
+        for (DBCoercion item : coercionsList) {
             if (item.type() == type)
                 return item;
         }

@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc;
@@ -36,9 +33,7 @@ final class StreamColInfo extends StreamPacket {
         // Read and apply the column info for each column
         TDSReaderMark currentMark = tdsReader.mark();
         tdsReader.reset(colInfoMark);
-        for (int i = 0; i < columns.length; i++) {
-            Column col = columns[i];
-
+        for (Column col : columns) {
             // Ignore the column number, per TDS spec.
             // Column info is returned for each column, ascending by column index,
             // so iterating through the column info is sufficient.

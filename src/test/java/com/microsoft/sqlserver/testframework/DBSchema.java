@@ -1,9 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * 
- * Copyright(c) Microsoft Corporation All rights reserved.
- * 
- * This program is made available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.testframework;
@@ -37,6 +34,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarChar;
 
+
 /**
  * Collection of SqlType used to create table in {@link DBTable}
  * 
@@ -52,7 +50,7 @@ public class DBSchema {
      * @param autoGenerateSchema
      */
     DBSchema(boolean autoGenerateSchema) {
-        sqlTypes = new ArrayList<SqlType>();
+        sqlTypes = new ArrayList<>();
         if (autoGenerateSchema) {
             // Exact Numeric
             sqlTypes.add(new SqlBigInt());
@@ -83,9 +81,6 @@ public class DBSchema {
             // Binary
             sqlTypes.add(new SqlBinary());
             sqlTypes.add(new SqlVarBinary());
-
-            // TODO:
-            // Other types
         }
     }
 
@@ -94,8 +89,7 @@ public class DBSchema {
      * @param autoGenerateSchema
      * @param alternateSchema
      */
-    DBSchema(boolean autoGenerateSchema,
-            boolean alternateSchema) {
+    DBSchema(boolean autoGenerateSchema, boolean alternateSchema) {
         this(autoGenerateSchema);
         if (alternateSchema) {
             Collections.shuffle(this.sqlTypes);
