@@ -4505,7 +4505,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             SQLServerException middleException = new SQLServerException(form.format(msgArgs1),
                                     adalException);
 
-                            form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
+                            form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
                             Object[] msgArgs = {user, authenticationString};
                             throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
                         }
