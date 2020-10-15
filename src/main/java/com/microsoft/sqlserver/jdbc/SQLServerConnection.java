@@ -4441,7 +4441,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         while (true) {
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
                 if (!msalContextExists()) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALLMissing"));
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
                 }
                 fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
@@ -4532,7 +4532,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 else {
                     // Check if MSAL4J library is available
                     if (!msalContextExists()) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandMSALLMissing"));
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandMSALMissing"));
                         Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
                         throw new SQLServerException(form.format(msgArgs), null, 0, null);
                     }
