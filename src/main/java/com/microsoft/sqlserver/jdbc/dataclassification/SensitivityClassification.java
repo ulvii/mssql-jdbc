@@ -13,10 +13,12 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 
 /**
  * Provides the functionality to retrieve Sensitivity Classification data as received from SQL Server for the active
- * resultSet
+ * ResultSet.
  */
 public class SensitivityClassification {
-
+    /**
+     * Specifies the sensitivity rank of a column.
+     */
     public enum SensitivityRank {
         NOT_DEFINED(-1),
         NONE(0),

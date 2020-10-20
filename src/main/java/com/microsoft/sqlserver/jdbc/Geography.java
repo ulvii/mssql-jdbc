@@ -10,12 +10,14 @@ import java.nio.ByteOrder;
 
 
 /**
- * Geography datatype represents data in a round-earth coordinate system.
+ * Geography data type represents data in a round-earth coordinate system.
  * This class will stay in this current package for backwards compatibility.
  */
 
 public class Geography extends SQLServerSpatialDatatype {
-
+    /**
+     * Default empty constructor.
+     */
     protected Geography() {}
 
     /**

@@ -15,9 +15,9 @@ import java.util.UUID;
  * Provides an interface to the {@link SQLServerConnection} and {@link SQLServerConnectionPoolProxy} classes.
  */
 public interface ISQLServerConnection extends java.sql.Connection {
-
-    // Transaction types.
-    // TRANSACTION_SNAPSHOT corresponds to -> SET TRANSACTION ISOLATION LEVEL SNAPSHOT
+    /**
+     * Transaction types. TRANSACTION_SNAPSHOT corresponds to -> SET TRANSACTION ISOLATION LEVEL SNAPSHOT.
+     */
     int TRANSACTION_SNAPSHOT = 0x1000;
 
     /**

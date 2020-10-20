@@ -20,50 +20,142 @@ import com.microsoft.sqlserver.jdbc.spatialdatatypes.Shape;
 
 
 /**
- * Abstract parent class for Spatial Datatypes that contains common functionalities.
+ * Abstract parent class for Spatial data types that contains common functionalities.
  */
 
 abstract class SQLServerSpatialDatatype {
 
-    /** WKT = Well-Known-Text, WKB = Well-Knwon-Binary, CLR = Client Runtime Language */
+    /*
+     * WKT = Well-Known-Text, WKB = Well-Knwon-Binary, CLR = Client Runtime Language As a general rule, the ~IndexEnd
+     * variables are non-inclusive (i.e. pointIndexEnd = 8 means the shape using it will only go up to the 7th index of
+     * the array)
+     */
     /**
-     * As a general rule, the ~IndexEnd variables are non-inclusive (i.e. pointIndexEnd = 8 means the shape using it
-     * will only go up to the 7th index of the array)
+     * Buffer to store bytes of the object.
      */
     protected ByteBuffer buffer;
+    /**
+     * Type of the object.
+     */
     protected InternalSpatialDatatype internalType;
+    /**
+     * WKT representation.
+     */
     protected String wkt;
+    /**
+     * WKT representation without Z and M values.
+     */
     protected String wktNoZM;
+    /**
+     * CLR representation.
+     */
     protected byte[] clr;
+    /**
+     * CLR representation without Z and M values.
+     */
     protected byte[] clrNoZM;
+    /**
+     * Spatial reference identifier.
+     */
     protected int srid;
+    /**
+     * Version.
+     */
     protected byte version = 1;
+    /**
+     * Number of Points.
+     */
     protected int numberOfPoints;
+    /**
+     * Number of Figures.
+     */
     protected int numberOfFigures;
+    /**
+     * Number of Shapes.
+     */
     protected int numberOfShapes;
+    /**
+     * Number of Segments.
+     */
     protected int numberOfSegments;
+    /**
+     * WKT representation.
+     */
     protected StringBuffer WKTsb;
+    /**
+     * WKT representation without Z and M values.
+     */
     protected StringBuffer WKTsbNoZM;
+    /**
+     * Current index of Point.
+     */
     protected int currentPointIndex = 0;
+    /**
+     * Current index of Figure.
+     */
     protected int currentFigureIndex = 0;
+    /**
+     * Current index of Segment.
+     */
     protected int currentSegmentIndex = 0;
+    /**
+     * Current index of Shape.
+     */
     protected int currentShapeIndex = 0;
+    /**
+     * Current index of Point in WKB format.
+     */
     protected int currentWKBPointIndex = 0;
+    /**
+     * Current index of Figure in WKB format.
+     */
     protected int currentWKBFigureIndex = 0;
+    /**
+     * Current index of Segment in WKB format.
+     */
     protected int currentWKBSegmentIndex = 0;
+    /**
+     * Current index of Shape in WKB format.
+     */
     protected int currentWKBShapeIndex = 0;
+    /**
+     * X values.
+     */
     protected double xValues[];
+    /**
+     * Y values.
+     */
     protected double yValues[];
+    /**
+     * Z values.
+     */
     protected double zValues[];
+    /**
+     * M values.
+     */
     protected double mValues[];
+    /**
+     * An array to to store Figures.
+     */
     protected Figure figures[] = {};
+    /**
+     * An array to to store Shapes.
+     */
     protected Shape shapes[] = {};
+    /**
+     * An array to to store Segments.
+     */
     protected Segment segments[] = {};
 
     // WKB properties
+    /**
+     * WKB representation.
+     */
     protected byte[] wkb;
-    protected byte endian = 1; // little endian
-    protected int wkbType;
+    /**
+     * Little endian.
+     */
+    protected byte endian = 1;
     /*
      * Open Geospatial Consortium specifications Document reference number: OGC 06-103r3
      */
@@ -77,29 +169,67 @@ abstract class SQLServerSpatialDatatype {
     final private int WKB_FULLGLOBE_CODE = 126;
 
     // serialization properties
+    /**
+     * Flag to determine whether the object has Z values.
+     */
     protected boolean hasZvalues = false;
+    /**
+     * Flag to determine whether the object has M values.
+     */
     protected boolean hasMvalues = false;
+    /**
+     * Flag to determine whether the object is valid. 
+     */
     protected boolean isValid = true;
+    /**
+     * Flag to determine whether the object is a single point. 
+     */
     protected boolean isSinglePoint = false;
+    /**
+     * Flag to determine whether the object is a single line segment. 
+     */
     protected boolean isSingleLineSegment = false;
+    /**
+     * Flag to determine whether the object is larger than hemisphere. 
+     */
     protected boolean isLargerThanHemisphere = false;
+    /**
+     * Flag to determine whether the object is null. 
+     */
     protected boolean isNull = true;
 
-    protected final byte FA_INTERIOR_RING = 0;
-    protected final byte FA_STROKE = 1;
-    protected final byte FA_EXTERIOR_RING = 2;
+    private final byte FA_STROKE = 1;
+    private final byte FA_EXTERIOR_RING = 2;
 
-    protected final byte FA_POINT = 0;
-    protected final byte FA_LINE = 1;
-    protected final byte FA_ARC = 2;
-    protected final byte FA_COMPOSITE_CURVE = 3;
+    private final byte FA_POINT = 0;
+    private final byte FA_LINE = 1;
+    private final byte FA_ARC = 2;
+    private final byte FA_COMPOSITE_CURVE = 3;
 
     // WKT to CLR properties
+    /**
+     * Current index in WKT format.
+     */
     protected int currentWktPos = 0;
+    /**
+     * List of points.
+     */
     protected List<Point> pointList = new ArrayList<Point>();
+    /**
+     * List of figures.
+     */
     protected List<Figure> figureList = new ArrayList<Figure>();
+    /**
+     * List of shapes.
+     */
     protected List<Shape> shapeList = new ArrayList<Shape>();
+    /**
+     * List of segments.
+     */
     protected List<Segment> segmentList = new ArrayList<Segment>();
+    /**
+     * Serialization properties.
+     */
     protected byte serializationProperties = 0;
 
     private final byte SEGMENT_LINE = 0;
@@ -1743,9 +1873,11 @@ abstract class SQLServerSpatialDatatype {
             }
         }
 
-        // if version is 2, then we need to check for potential shapes (polygon & multi-shapes) that were
-        // given their figure attributes as if it was version 1, since we don't know what would be the
-        // version of the geometry/geography before we parse the entire WKT.
+        /*
+         * If version is 2, then we need to check for potential shapes (polygon & multi-shapes) that were given their
+         * figure attributes as if it was version 1, since we don't know what would be the version of the
+         * geometry/geography before we parse the entire WKT.
+         */
         if (version == 2) {
             for (int i = 0; i < version_one_shape_indexes.size(); i++) {
                 figureList.get(version_one_shape_indexes.get(i)).setFiguresAttribute((byte) 1);
@@ -1759,12 +1891,12 @@ abstract class SQLServerSpatialDatatype {
                 figures[i] = figureList.get(i);
             }
         }
-
-        // There is an edge case of empty GeometryCollections being inside other GeometryCollections. In this case,
-        // the figure offset of the very first shape (GeometryCollections) has to be -1, but this is not possible to
-        // know until
-        // We've parsed through the entire WKT and confirmed that there are 0 points.
-        // Therefore, if so, we make the figure offset of the first shape to be -1.
+        /*
+         * There is an edge case of empty GeometryCollections being inside other GeometryCollections. In this case, the
+         * figure offset of the very first shape (GeometryCollections) has to be -1, but this is not possible to know
+         * until We've parsed through the entire WKT and confirmed that there are 0 points. Therefore, if so, we make
+         * the figure offset of the first shape to be -1.
+         */
         if (pointList.size() == 0 && shapeList.size() > 0 && shapeList.get(0).getOpenGISType() == 7) {
             shapeList.get(0).setFigureOffset(-1);
         }
@@ -1791,7 +1923,7 @@ abstract class SQLServerSpatialDatatype {
         numberOfSegments = segmentList.size();
     }
 
-    protected void readOpenBracket() throws SQLServerException {
+    private void readOpenBracket() throws SQLServerException {
         skipWhiteSpaces();
         if (wkt.charAt(currentWktPos) == '(') {
             currentWktPos++;
@@ -1801,7 +1933,7 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected void readCloseBracket() throws SQLServerException {
+    private void readCloseBracket() throws SQLServerException {
         skipWhiteSpaces();
         if (wkt.charAt(currentWktPos) == ')') {
             currentWktPos++;
@@ -1811,12 +1943,12 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected boolean hasMoreToken() {
+    private boolean hasMoreToken() {
         skipWhiteSpaces();
         return currentWktPos < wkt.length();
     }
 
-    protected void createSerializationProperties() {
+    private void createSerializationProperties() {
         serializationProperties = 0;
         if (hasZvalues) {
             serializationProperties += hasZvaluesMask;
@@ -1845,7 +1977,7 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected int determineClrCapacity(boolean excludeZMFromCLR) {
+    private int determineClrCapacity(boolean excludeZMFromCLR) {
         int totalSize = 0;
 
         totalSize += 6; // SRID + version + SerializationPropertiesByte
@@ -1890,7 +2022,7 @@ abstract class SQLServerSpatialDatatype {
         return totalSize;
     }
 
-    protected int determineWkbCapacity() {
+    private int determineWkbCapacity() {
         int totalSize = 0;
 
         totalSize += BYTE_ORDER_SIZE; // byte order
@@ -2115,7 +2247,7 @@ abstract class SQLServerSpatialDatatype {
         WKTsbNoZM.append(o);
     }
 
-    protected void interpretSerializationPropBytes() {
+    private void interpretSerializationPropBytes() {
         hasZvalues = (serializationProperties & hasZvaluesMask) != 0;
         hasMvalues = (serializationProperties & hasMvaluesMask) != 0;
         isValid = (serializationProperties & isValidMask) != 0;
@@ -2124,7 +2256,7 @@ abstract class SQLServerSpatialDatatype {
         isLargerThanHemisphere = (serializationProperties & isLargerThanHemisphereMask) != 0;
     }
 
-    protected void readNumberOfPoints() throws SQLServerException {
+    private void readNumberOfPoints() throws SQLServerException {
         if (isSinglePoint) {
             numberOfPoints = 1;
         } else if (isSingleLineSegment) {
@@ -2135,26 +2267,26 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected void readZvalues() throws SQLServerException {
+    private void readZvalues() throws SQLServerException {
         zValues = new double[numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
             zValues[i] = readDouble();
         }
     }
 
-    protected void readMvalues() throws SQLServerException {
+    private void readMvalues() throws SQLServerException {
         mValues = new double[numberOfPoints];
         for (int i = 0; i < numberOfPoints; i++) {
             mValues[i] = readDouble();
         }
     }
 
-    protected void readNumberOfFigures() throws SQLServerException {
+    private void readNumberOfFigures() throws SQLServerException {
         numberOfFigures = readInt();
         checkNegSize(numberOfFigures);
     }
 
-    protected void readFigures() throws SQLServerException {
+    private void readFigures() throws SQLServerException {
         byte fa;
         int po;
         figures = new Figure[numberOfFigures];
@@ -2165,12 +2297,12 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected void readNumberOfShapes() throws SQLServerException {
+    private void readNumberOfShapes() throws SQLServerException {
         numberOfShapes = readInt();
         checkNegSize(numberOfShapes);
     }
 
-    protected void readShapes() throws SQLServerException {
+    private void readShapes() throws SQLServerException {
         int po;
         int fo;
         byte ogt;
@@ -2183,12 +2315,12 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected void readNumberOfSegments() throws SQLServerException {
+    private void readNumberOfSegments() throws SQLServerException {
         numberOfSegments = readInt();
         checkNegSize(numberOfSegments);
     }
 
-    protected void readSegments() throws SQLServerException {
+    private void readSegments() throws SQLServerException {
         byte st;
         segments = new Segment[numberOfSegments];
         for (int i = 0; i < numberOfSegments; i++) {
@@ -2197,7 +2329,7 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected void determineInternalType() {
+    private void determineInternalType() {
         if (isSinglePoint) {
             internalType = InternalSpatialDatatype.POINT;
         } else if (isSingleLineSegment) {
@@ -2207,7 +2339,7 @@ abstract class SQLServerSpatialDatatype {
         }
     }
 
-    protected boolean checkEmptyKeyword(int parentShapeIndex, InternalSpatialDatatype isd,
+    private boolean checkEmptyKeyword(int parentShapeIndex, InternalSpatialDatatype isd,
             boolean isInsideAnotherShape) throws SQLServerException {
         String potentialEmptyKeyword = getNextStringToken().toUpperCase(Locale.US);
         if ("EMPTY".equals(potentialEmptyKeyword)) {
@@ -2247,11 +2379,21 @@ abstract class SQLServerSpatialDatatype {
         return false;
     }
 
+    /**
+     * A method to throw an exception when WKT string is invalid.
+     * 
+     * @throws SQLServerException when WKT string is invalid.
+     */
     protected void throwIllegalWKT() throws SQLServerException {
         String strError = SQLServerException.getErrString("R_illegalWKT");
         throw new SQLServerException(strError, null, 0, null);
     }
-
+    
+    /**
+     * A method to throw an exception when byte array is invalid.
+     * 
+     * @throws SQLServerException when parsing error occurs
+     */
     protected void throwIllegalByteArray() throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
         Object[] msgArgs = {JDBCType.VARBINARY};
@@ -2610,34 +2752,53 @@ abstract class SQLServerSpatialDatatype {
         throw new SQLServerException(form.format(new Object[] {currentWktPos}), null, 0, null);
     }
 
-    protected byte readByte() throws SQLServerException {
+    private byte readByte() throws SQLServerException {
         checkBuffer(1);
         return buffer.get();
     }
 
-    protected int readInt() throws SQLServerException {
+    private int readInt() throws SQLServerException {
         checkBuffer(4);
         return buffer.getInt();
     }
 
-    protected double readDouble() throws SQLServerException {
+    private double readDouble() throws SQLServerException {
         checkBuffer(8);
         return buffer.getDouble();
     }
 
-    // Allow retrieval of internal structures
+    /**
+     * Returns the list of Points of the object.
+     * 
+     * @return list of Points.
+     */
     public List<Point> getPointList() {
         return pointList;
     }
 
+    /**
+     * Returns the list of Figures of the object.
+     * 
+     * @return list of Figures.
+     */
     public List<Figure> getFigureList() {
         return figureList;
     }
 
+    /**
+     * Returns the list of Shapes of the object.
+     * 
+     * @return list of Shapes.
+     */
     public List<Shape> getShapeList() {
         return shapeList;
     }
 
+    /**
+     * Returns the list of Segments of the object.
+     * 
+     * @return list of Segments.
+     */
     public List<Segment> getSegmentList() {
         return segmentList;
     }

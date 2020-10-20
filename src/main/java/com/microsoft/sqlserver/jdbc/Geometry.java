@@ -15,7 +15,9 @@ import java.nio.ByteOrder;
  */
 
 public class Geometry extends SQLServerSpatialDatatype {
-
+    /**
+     * Default empty constructor.
+     */
     protected Geometry() {}
 
     /**

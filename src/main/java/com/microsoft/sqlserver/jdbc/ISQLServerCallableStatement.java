@@ -15,7 +15,17 @@ import java.util.Calendar;
  * Provides an interface to the {@link SQLServerCallableStatement} class.
  */
 public interface ISQLServerCallableStatement extends java.sql.CallableStatement, ISQLServerPreparedStatement {
-
+    
+    /**
+     * Returns the value of the designated column in the current row of this ResultSet object as a java.math.BigDecimal
+     * object in the Java programming language.
+     * 
+     * @param index
+     *        the first column is 1, the second is 2, ...
+     * @return the column value; if the value is SQL NULL, the value returned is null
+     * @throws SQLServerException
+     *         when an error occurs
+     */
     @Deprecated
     BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException;
 
