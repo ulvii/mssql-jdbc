@@ -782,7 +782,7 @@ enum JDBCType {
         TIMESTAMP_WITH_TIMEZONE(JDBCType.Category.TIMESTAMP_WITH_TIMEZONE, EnumSet.of(
                 JDBCType.Category.TIMESTAMP_WITH_TIMEZONE, JDBCType.Category.TIME_WITH_TIMEZONE,
                 JDBCType.Category.CHARACTER, JDBCType.Category.LONG_CHARACTER, JDBCType.Category.NCHARACTER,
-                JDBCType.Category.LONG_NCHARACTER)),
+                JDBCType.Category.LONG_NCHARACTER, JDBCType.Category.DATETIMEOFFSET)),
 
         DATETIMEOFFSET(JDBCType.Category.DATETIMEOFFSET, EnumSet.of(JDBCType.Category.DATE, JDBCType.Category.TIME,
                 JDBCType.Category.TIMESTAMP, JDBCType.Category.DATETIMEOFFSET)),
